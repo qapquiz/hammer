@@ -9,6 +9,9 @@ import type { MeteoraPoolCriteria, MeteoraPoolSort } from '../data-access/meteor
 const SORT_OPTIONS: { label: string; value: MeteoraPoolSort }[] = [
   { label: 'TVL', value: 'tvl' },
   { label: 'Volume 24h', value: 'volume24h' },
+  { label: 'Fees 24h', value: 'fees24h' },
+  { label: 'Fee / TVL 24h', value: 'feeTvlRatio24h' },
+  { label: 'Farm APY', value: 'farmApy' },
 ]
 
 const MIN_TVL_OPTIONS: { label: string; value: number }[] = [

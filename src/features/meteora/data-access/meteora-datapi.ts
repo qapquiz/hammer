@@ -8,6 +8,9 @@ const POOLS_PAGE_SIZE = 20
 const SORT_BY_PARAM: Record<MeteoraPoolCriteria['sortBy'], string> = {
   tvl: 'tvl:desc',
   volume24h: 'volume_24h:desc',
+  fees24h: 'fee_24h:desc',
+  feeTvlRatio24h: 'fee_tvl_ratio_24h:desc',
+  farmApy: 'farm_apy:desc',
 }
 
 /** Wire values drift between strings and numbers across datapi versions; both parse to number. */
@@ -61,6 +64,7 @@ export function parseMeteoraPool(wire: unknown): MeteoraPool {
     volume24hUsd: parseStats(record.volume, '24h'),
     fees24hUsd: parseStats(record.fees, '24h'),
     farmApy: toNumberOrNull(record.farm_apy),
+    isBlacklisted: record.is_blacklisted === true,
     tokenX: parseToken(record.token_x, 'token_x'),
     tokenY: parseToken(record.token_y, 'token_y'),
     createdAtMs: toNumberOrNull(record.created_at),
@@ -82,11 +86,10 @@ export async function fetchMeteoraPools(criteria: MeteoraPoolCriteria, page: num
     page_size: String(POOLS_PAGE_SIZE),
     sort_by: SORT_BY_PARAM[criteria.sortBy],
   })
-  const filters = ['is_blacklisted=false']
+  // The API accepts exactly one filter_by condition (no separators, no repeats).
   if (criteria.minTvlUsd > 0) {
-    filters.unshift(`tvl>${criteria.minTvlUsd}`)
+    params.set('filter_by', `tvl>${criteria.minTvlUsd}`)
   }
-  params.set('filter_by', filters.join(','))
   if (criteria.search) {
     params.set('query', criteria.search)
   }
@@ -97,11 +100,12 @@ export async function fetchMeteoraPools(criteria: MeteoraPoolCriteria, page: num
     current_page?: unknown
     data?: unknown[]
   }
+  const pools = (wire.data ?? []).map(parseMeteoraPool).filter((pool) => !pool.isBlacklisted)
   return {
     total: toNumber(wire.total, 'total'),
     totalPages: toNumber(wire.pages, 'pages'),
     page: toNumber(wire.current_page ?? page, 'current_page'),
-    pools: (wire.data ?? []).map(parseMeteoraPool),
+    pools,
   }
 }
 

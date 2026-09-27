@@ -20,12 +20,13 @@ export interface MeteoraPool {
   volume24hUsd: number
   fees24hUsd: number
   farmApy: number | null
+  isBlacklisted: boolean
   tokenX: MeteoraToken
   tokenY: MeteoraToken
   createdAtMs: number | null
 }
 
-export type MeteoraPoolSort = 'tvl' | 'volume24h'
+export type MeteoraPoolSort = 'tvl' | 'volume24h' | 'fees24h' | 'feeTvlRatio24h' | 'farmApy'
 
 export interface MeteoraPoolCriteria {
   sortBy: MeteoraPoolSort
