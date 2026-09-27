@@ -19,6 +19,14 @@ type ToolItem = {
 
 const toolItems = [
   {
+    description: 'Browse Meteora DLMM pools and create liquidity positions with your connected wallet.',
+    href: '/tools/meteora',
+    icon: 'water-outline',
+    id: 'meteora',
+    summary: 'Meteora DLMM pool discovery and liquidity position creation.',
+    title: 'Meteora DLMM',
+  },
+  {
     description: 'Run the example wallet requests for signing in, signing messages, and sending transactions.',
     href: '/tools/wallet-actions',
     icon: 'wallet-outline',
