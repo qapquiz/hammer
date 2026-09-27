@@ -150,7 +150,6 @@ function roleForAccount(isSigner: boolean, isWritable: boolean): AccountRole {
   return isWritable ? AccountRole.WRITABLE : AccountRole.READONLY
 }
 
-/** web3.js TransactionInstruction, referenced type-only; instances never leave this file. */
 function toKitInstruction(instruction: {
   programId: { toBase58(): string }
   keys: { pubkey: { toBase58(): string }; isSigner: boolean; isWritable: boolean }[]

@@ -31,7 +31,6 @@ export type MeteoraPoolSort = 'tvl' | 'volume24h' | 'fees24h' | 'feeTvlRatio24h'
 export interface MeteoraPoolCriteria {
   sortBy: MeteoraPoolSort
   minTvlUsd: number
-  /** Trimmed user text; '' means no query filter. */
   search: string
 }
 
@@ -54,7 +53,6 @@ export interface MeteoraActiveBin {
   /** Human UI price (token Y per token X), decimals-adjusted by the SDK. */
   price: number
   binStep: number
-  /** Pool's static bin-id bounds; range derivation clamps into these. */
   minBinId: number
   maxBinId: number
 }
@@ -133,7 +131,6 @@ export interface MeteoraPositionPlan {
   activeBinIdAtPlanTime: number
 }
 
-/** Derived for display while the user edits, before a plan exists. */
 export interface MeteoraPositionPreview {
   presetId: MeteoraStrategyPresetId
   minBinId: number

@@ -71,28 +71,7 @@ export async function executeMeteoraCreatePosition({
   return { signature, positionAddress: built.positionAddress }
 }
 
-/** Position rent is a real failed-send mode, so it is checked together with the fee. */
 function foldInRent(fee: Lamports | null, rent: MeteoraRentQuote): Lamports | null {
   const rentLamports = BigInt(Math.round(rent.totalSol * 1_000_000_000))
   return fee === null ? null : ((fee + rentLamports) as Lamports)
-}
-
-/** Mirrors the wallet connect button's MWA cancellation classifier. */
-export function isWalletDismissedError(error: unknown): boolean {
-  const code = error !== null && typeof error === 'object' && 'code' in error ? String(error.code) : ''
-  const message =
-    error instanceof Error
-      ? error.message
-      : error && typeof error === 'object' && 'message' in error
-        ? String(error.message)
-        : typeof error === 'string'
-          ? error
-          : ''
-
-  return (
-    code === 'ERROR_ASSOCIATION_CANCELLED' ||
-    code === 'Session not established: Local association cancelled by user' ||
-    message.includes('CancellationException') ||
-    message.includes('Local association cancelled by user')
-  )
 }

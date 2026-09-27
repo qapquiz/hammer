@@ -1,4 +1,3 @@
-/** USD formatters for datapi values; pure display math. */
 export function formatUsdCompact(value: number): string {
   if (value >= 1_000_000_000) {
     return `$${(value / 1_000_000_000).toFixed(2)}B`
@@ -12,7 +11,6 @@ export function formatUsdCompact(value: number): string {
   return `$${value.toFixed(2)}`
 }
 
-/** Fraction (0.05 = 5%) to a percent string. */
 export function formatPercentFraction(fraction: number): string {
   return `${(fraction * 100).toFixed(2)}%`
 }

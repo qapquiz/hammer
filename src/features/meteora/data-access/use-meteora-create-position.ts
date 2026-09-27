@@ -14,7 +14,9 @@ import {
 } from './meteora-types'
 import { meteoraActiveBinQueryOptions } from './use-meteora-active-bin'
 import { createPositionFlowReducer } from '../util/create-position-flow'
-import { executeMeteoraCreatePosition, isWalletDismissedError } from '../util/execute-meteora-create-position'
+import { isWalletConnectionCanceled } from '@/features/wallet/util/is-wallet-connection-canceled'
+
+import { executeMeteoraCreatePosition } from '../util/execute-meteora-create-position'
 import { planPosition, validatePositionDraft } from '../util/meteora-position'
 
 export interface UseMeteoraCreatePositionProps {
@@ -46,7 +48,7 @@ export function useMeteoraCreatePosition({ account, client, pool }: UseMeteoraCr
       void queryClient.invalidateQueries({ queryKey: ['get-balance'] })
     },
     onError: (error) => {
-      dispatch({ type: isWalletDismissedError(error) ? 'dismissed' : 'failed', error })
+      dispatch({ type: isWalletConnectionCanceled(error) ? 'dismissed' : 'failed', error })
     },
   })
 

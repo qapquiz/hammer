@@ -14,8 +14,8 @@ export type MeteoraCreatePositionEvent =
   | { type: 'reset' }
 
 /**
- * Total function: any event that does not match the state's legal transition returns the state
- * unchanged, so events arriving after a reset (or duplicated) can never corrupt the flow.
+ * Stale or out-of-order events are no-ops: a dispatch racing a reset (or a
+ * double-tap) can never corrupt the flow.
  */
 export function createPositionFlowReducer(
   state: MeteoraCreatePositionFlow,

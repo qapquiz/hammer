@@ -24,7 +24,6 @@ export function derivePresetRange(preset: MeteoraStrategyPreset, activeBin: Mete
   }
 }
 
-/** Anchored bin-price math: price(delta) = activePrice * (1 + binStep/10000)^delta. */
 export function binPrice(activePrice: number, binStep: number, binDelta: number): number {
   return activePrice * (1 + binStep / 10_000) ** binDelta
 }
@@ -42,7 +41,6 @@ export function derivePresetPreview(draft: MeteoraPositionDraft, activeBin: Mete
   }
 }
 
-/** Decimal-string human units to base units; null when the input is not a plain amount. */
 export function toBaseUnits(amount: string, decimals: number): bigint | null {
   const trimmed = amount.trim()
   if (!/^\d*(\.\d*)?$/.test(trimmed) || trimmed === '' || trimmed === '.') {
