@@ -1,11 +1,239 @@
 {
   "version": 1,
   "skills": {
+    "architect": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/architect/SKILL.md",
+      "computedHash": "617d2784f157bdd304ba842c5ac761c23b1a2c4d42a319010609df54505fcbfa"
+    },
+    "arena": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/arena/SKILL.md",
+      "computedHash": "0d2416020ea707669b60daa76063bd999cd48843b932a81e5abdcfa26147ae68"
+    },
+    "automate-me": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/automate-me/SKILL.md",
+      "computedHash": "9e80c7e183e4c02dea1929736d4c5666475266c685cb1ac7f8b64ced702e4dd7"
+    },
+    "blast-radius": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/blast-radius/SKILL.md",
+      "computedHash": "b703f11f239a48ce39112c667d334a6f8f80eeb35e6df1f24a9371068a2bb562"
+    },
+    "bro": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/bro/SKILL.md",
+      "computedHash": "b651827a1c11465d79500780e53414fdccffd12ce3b640138dee2d04133a9a33"
+    },
+    "create-verification-skill": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/create-verification-skill/SKILL.md",
+      "computedHash": "971c2615dfbede21b6f0827cbce86c57980d78c3d23af8151059d2ff79ad58bd"
+    },
+    "figure-it-out": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/figure-it-out/SKILL.md",
+      "computedHash": "51198a82ceca004899526f906781783c6b76314dd50b063e68b771b0d042e5a6"
+    },
+    "how": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/how/SKILL.md",
+      "computedHash": "26438443b455363027adc78db18684ad111308d4becbe2ef8177bc7cffbb5364"
+    },
     "integration-privy": {
       "source": "solana-mobile/solana-mobile-dev-skill",
       "sourceType": "github",
       "skillPath": "skills/integration-privy/SKILL.md",
       "computedHash": "42840fb29ee2ff86d7b4106a6af2983a1ca84fdf6f560e6e76766427f6c2dad4"
+    },
+    "interrogate": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/interrogate/SKILL.md",
+      "computedHash": "ce94adc9697c6ba4ecdf204b14def961a5c0618b742c2ff71790f62afb4c33e7"
+    },
+    "maintain-verification-skill": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/maintain-verification-skill/SKILL.md",
+      "computedHash": "975137776dd102fdcb28bdeddbbf845919d6ce23b9e9b494b95bd695432a4016"
+    },
+    "make-bot-ui": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/make-bot-ui/SKILL.md",
+      "computedHash": "bac1e8cc9a8004f72edebfe19ea4083fedbd3a39d34616ca2cd6c81de3abf775"
+    },
+    "no-comments": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/no-comments/SKILL.md",
+      "computedHash": "66e637a9829975aba773c05d69d90c822a1f0e51b379d870710d5a6f9de916b5"
+    },
+    "poteto-mode": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/poteto-mode/SKILL.md",
+      "computedHash": "c1f1548b8f26f99ef7ae18cb289e00778c3e949b4899f6c83b3194ed7e58b537"
+    },
+    "principle-attack-the-premise": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-attack-the-premise/SKILL.md",
+      "computedHash": "3221a3db4e40420696747af169813e685cfe831cf473f00e205cb78ee576e449"
+    },
+    "principle-boundary-discipline": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-boundary-discipline/SKILL.md",
+      "computedHash": "51f995752ff3bad613526eb7779872e01d01ac141a88c9ca050075a074ee5b70"
+    },
+    "principle-build-the-lever": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-build-the-lever/SKILL.md",
+      "computedHash": "e1f77c1844113e90ed231ef51a6717fb76804723269c23436c65e30c30a42718"
+    },
+    "principle-encode-lessons-in-structure": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-encode-lessons-in-structure/SKILL.md",
+      "computedHash": "13cb9b8bbf0aecd3c03a30803bbdfc012f6123f1a7d44db134bc8cce88a02d63"
+    },
+    "principle-exhaust-the-design-space": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-exhaust-the-design-space/SKILL.md",
+      "computedHash": "bf5f30c97afa75da12e1f982bffc3176d2172bd124072f6d9e74d06b0cf2b965"
+    },
+    "principle-experience-first": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-experience-first/SKILL.md",
+      "computedHash": "bd0254d8a460c145a148214cbc136f84dbba6edc9acc48c00a8af660efc88856"
+    },
+    "principle-fix-root-causes": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-fix-root-causes/SKILL.md",
+      "computedHash": "a6fe6d14109670ba52904a95a18711816b7cf464f2730fa6d34ed5d9f362edb6"
+    },
+    "principle-foundational-thinking": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-foundational-thinking/SKILL.md",
+      "computedHash": "bb6beaf165b3a3a454c20d243e5be96b0a7b2a8bc7b217be3d214a70a3bf3f14"
+    },
+    "principle-guard-the-context-window": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-guard-the-context-window/SKILL.md",
+      "computedHash": "cd6568d5872c74198787156412c94da0f57bac29f8ee50cde112e2571b79aa32"
+    },
+    "principle-laziness-protocol": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-laziness-protocol/SKILL.md",
+      "computedHash": "5c6a19fca468569ee4f31fe71148a1c09e36d4b4c7d3ee30d05ebc7c4e840ea8"
+    },
+    "principle-make-operations-idempotent": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-make-operations-idempotent/SKILL.md",
+      "computedHash": "8293bf10530fdffa13216645432989a14b3ca4a1b6a6f0e12bf9a141ba48f802"
+    },
+    "principle-migrate-callers-then-delete-legacy-apis": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-migrate-callers-then-delete-legacy-apis/SKILL.md",
+      "computedHash": "fc645cc45560cb8e0fd655759a9d11553605942c014910e33a3c2182da276e96"
+    },
+    "principle-minimize-reader-load": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-minimize-reader-load/SKILL.md",
+      "computedHash": "094bf45ca1440596057715d2124c96534917087b730a4ba25c0314eff2447368"
+    },
+    "principle-model-the-domain": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-model-the-domain/SKILL.md",
+      "computedHash": "ecefa086214024c8ea375193657a2464aa0f2c582e327c3f507db6ea35506a56"
+    },
+    "principle-never-block-on-the-human": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-never-block-on-the-human/SKILL.md",
+      "computedHash": "fcee298eea871f7bc7edd19bfa2067d9a6eb326e239ea2507c6cfd1750906ce1"
+    },
+    "principle-outcome-oriented-execution": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-outcome-oriented-execution/SKILL.md",
+      "computedHash": "c6ba3d622fe1e3d28a83d391ceaa150aaeafac9c935c154df9b1826f6423bc0b"
+    },
+    "principle-prove-it-works": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-prove-it-works/SKILL.md",
+      "computedHash": "6777a72ed3c15bbd73f0d264ba4eb701e5e733de70dd519c72fc2698a32379a2"
+    },
+    "principle-redesign-from-first-principles": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-redesign-from-first-principles/SKILL.md",
+      "computedHash": "149fec5da594ae56df069d2e79a01a2d1e003c49770d79fc683096d559c94213"
+    },
+    "principle-separate-before-serializing-shared-state": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-separate-before-serializing-shared-state/SKILL.md",
+      "computedHash": "d372812c2617e5226df5bd60950dd9d3e8f5758a9a1e4fefc63114ad53253769"
+    },
+    "principle-sequence-verifiable-units": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-sequence-verifiable-units/SKILL.md",
+      "computedHash": "f72a42fb823a8531a6a243a2e8616813cc71cc2796f3bf775d7717b4e6a916bb"
+    },
+    "principle-subtract-before-you-add": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-subtract-before-you-add/SKILL.md",
+      "computedHash": "c85188049e825fe715bb76bb0aa53adfa7f2f719a0b52db2b0c72daf6dd9aac7"
+    },
+    "principle-test-behavior-not-implementation": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-test-behavior-not-implementation/SKILL.md",
+      "computedHash": "41a7140188cc96559c6af4bde7ca3e9611458490846d2dc446776e962ad9f430"
+    },
+    "principle-type-system-discipline": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/principle-type-system-discipline/SKILL.md",
+      "computedHash": "dbd4efbb3e6da61329f23b43301b8aa73fde79d6fca75be3d518f51abfd30e32"
+    },
+    "recall": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/recall/SKILL.md",
+      "computedHash": "278b811c3768f4b499a55c53a6c49a8884c9c71c5b8e8adcaf1ef43c1270a8f0"
+    },
+    "reflect": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/reflect/SKILL.md",
+      "computedHash": "e8745084f2a3038703261a16a54ee81c7b6a7cca9834883012af83611275adc1"
     },
     "seeker-connect": {
       "source": "solana-mobile/solana-mobile-dev-skill",
@@ -24,6 +252,18 @@
       "sourceType": "github",
       "skillPath": "skills/seeker-genesis-token/SKILL.md",
       "computedHash": "6b01d58e06e4429b7834b06053d7380ac370412608355523ac2dc37118547f67"
+    },
+    "setup-pstack": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/setup-pstack/SKILL.md",
+      "computedHash": "b85fd520212def3b94dcce3903e2f0fb15f8e1042cdf926e2a8bc5033ec69aa2"
+    },
+    "show-me-your-work": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/show-me-your-work/SKILL.md",
+      "computedHash": "c89244971dbb597b5bc6088710d3d8937234558d90ddbd2a2054294e59c4aeda"
     },
     "solana-dev": {
       "source": "solana-foundation/solana-dev-skill",
@@ -48,6 +288,48 @@
       "sourceType": "github",
       "skillPath": "skills/solana-mobile-wallet/SKILL.md",
       "computedHash": "137213578d4b5bd0e5356038302cd8ee022b49d5c394d2282bae20946a316b7d"
+    },
+    "swarm": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/swarm/SKILL.md",
+      "computedHash": "f99c1df190a8d83cab45bf05e4630341863f2958100e5a0cb1d1573efac16c3c"
+    },
+    "tdd": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/tdd/SKILL.md",
+      "computedHash": "d3316fbb89ac596c91bb8d529180393c3b69fb6408f7d5cdccb74ead97cbf188"
+    },
+    "teach": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/teach/SKILL.md",
+      "computedHash": "371a2a40807cc1c0611d50b8170b2395f9c0297f7eb475e071018e12aa766bc5"
+    },
+    "technical-writing": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/technical-writing/SKILL.md",
+      "computedHash": "a513ffa8987ff8528c19a76444de3c3954422c53b2393624976937ca326c52e1"
+    },
+    "typescript-best-practices": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/typescript-best-practices/SKILL.md",
+      "computedHash": "fa7ef91569341d1c4a7af99b9521443fe5793d2e570187a565349ebf9cb4e2ab"
+    },
+    "unslop": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/unslop/SKILL.md",
+      "computedHash": "6018ca8c329ba87c6b4298207f58d6b773fe23e44ff52a00a9a4d160c19bedc0"
+    },
+    "why": {
+      "source": "qapquiz/qstack",
+      "sourceType": "github",
+      "skillPath": "skills/why/SKILL.md",
+      "computedHash": "806587ad0ad2c2b3699dc4f39be8baf4bb62d4c3b4d865bcaaa8d7095cb76f19"
     }
   }
 }
