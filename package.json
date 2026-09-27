@@ -33,12 +33,14 @@
   "dependencies": {
     "@expo/metro-runtime": "~57.0.5",
     "@expo/vector-icons": "^15.0.2",
+    "@meteora-ag/dlmm": "^1.9.14",
     "@nanostores/react": "^1.1.0",
     "@solana-program/memo": "^0.12.0",
     "@solana/kit": "^7.0.0",
     "@solana/kit-plugin-rpc": "^0.13.0",
     "@tanstack/react-query": "^5.100.14",
     "@wallet-ui/react-native-kit": "^4.2.1",
+    "buffer": "^5.7.1",
     "expo": "~57.0.6",
     "expo-constants": "~57.0.5",
     "expo-dev-client": "~57.0.6",
@@ -74,5 +76,8 @@
     "prettier": "^3.9.6",
     "typescript": "~6.0.3"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "buffer": "^5.7.1"
+  }
 }
