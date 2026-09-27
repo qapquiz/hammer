@@ -173,8 +173,15 @@ export const meteoraQueryKeys = {
   pool: (poolAddress: Address) => ['meteora-pool', poolAddress] as const,
   activeBin: (cluster: SolanaCluster, poolAddress: Address) =>
     ['meteora-active-bin', cluster.id, cluster.url, poolAddress] as const,
-  rentQuote: (cluster: SolanaCluster, poolAddress: Address, range: MeteoraBinRange) =>
-    ['meteora-rent-quote', cluster.id, cluster.url, poolAddress, range.minBinId, range.maxBinId] as const,
+  rentQuote: (cluster: SolanaCluster, poolAddress: Address, range: MeteoraBinRange | null) =>
+    [
+      'meteora-rent-quote',
+      cluster.id,
+      cluster.url,
+      poolAddress,
+      range?.minBinId ?? null,
+      range?.maxBinId ?? null,
+    ] as const,
 }
 
 export interface MeteoraBinRange {
