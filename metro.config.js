@@ -26,6 +26,17 @@ const uniwindConfig = withUniwindConfig(config, {
   dtsFile: './src/uniwind-types.d.ts',
 })
 
+// Resolve every 'buffer' require (including nested copies under @solana/*) to
+// the root buffer copy so there is exactly one Buffer implementation in the
+// bundle; multiple copies break cross-module instanceof and polyfill patches.
+uniwindConfig.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === 'buffer') {
+    const next = { ...context, originPath: path.join(__dirname, 'package.json'), resolveRequest: undefined }
+    return context.resolveRequest(next, 'buffer', platform)
+  }
+  return context.resolveRequest(context, moduleName, platform)
+}
+
 // Cache transforms per project; the machine-wide Metro cache can serve stale transforms from other projects.
 uniwindConfig.cacheStores = ({ FileStore }) => [
   new FileStore({ root: path.join(__dirname, 'node_modules', '.cache', 'metro') }),
