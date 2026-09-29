@@ -13,6 +13,7 @@
     "lint": "expo lint --fix",
     "lint:check": "expo lint",
     "start": "expo start",
+    "test": "bun test",
     "web": "expo start --web"
   },
   "displayName": "Hammer example",
@@ -31,14 +32,20 @@
   "main": "./index.js",
   "version": "0.0.0",
   "dependencies": {
+    "@coral-xyz/anchor": "^0.32.1",
     "@expo/metro-runtime": "~57.0.5",
     "@expo/vector-icons": "^15.0.2",
+    "@meteora-ag/dlmm": "^1.9.14",
     "@nanostores/react": "^1.1.0",
+    "@solana-program/compute-budget": "^0.19.0",
     "@solana-program/memo": "^0.12.0",
     "@solana/kit": "^7.0.0",
     "@solana/kit-plugin-rpc": "^0.13.0",
+    "@solana/web3.js": "^1.99.0",
     "@tanstack/react-query": "^5.100.14",
     "@wallet-ui/react-native-kit": "^4.2.1",
+    "bn.js": "^5.2.5",
+    "buffer": "^5.7.1",
     "expo": "~57.0.6",
     "expo-constants": "~57.0.5",
     "expo-dev-client": "~57.0.6",
@@ -75,5 +82,8 @@
     "prettier": "^3.9.6",
     "typescript": "~6.0.3"
   },
-  "private": true
+  "private": true,
+  "overrides": {
+    "buffer": "^5.7.1"
+  }
 }

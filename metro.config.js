@@ -52,4 +52,19 @@ uniwindConfig.resolver.resolveRequest = (context, specifier, platform) => {
   }
 }
 
+// Resolve every 'buffer' require (including nested copies under @solana/*) to the root buffer
+// copy so there is exactly one Buffer implementation in the bundle; multiple copies break
+// cross-module instanceof and the subarray patch in polyfill.js. Installed OUTERMOST so the
+// buffer pin runs before uniwind's resolver intercepts, and the web fallback above stays in
+// the chain for react-native-web subpaths.
+const uniwindOrWebFallbackResolveRequest = uniwindConfig.resolver.resolveRequest
+
+uniwindConfig.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName === 'buffer') {
+    const next = { ...context, originPath: path.join(__dirname, 'package.json'), resolveRequest: undefined }
+    return context.resolveRequest(next, 'buffer', platform)
+  }
+  return uniwindOrWebFallbackResolveRequest(context, moduleName, platform)
+}
+
 module.exports = uniwindConfig
