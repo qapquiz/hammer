@@ -46,7 +46,7 @@
     "userInterfaceStyle": "automatic",
     "web": {
       "favicon": "./assets/images/favicon.png",
-      "output": "static"
+      "output": "single"
     }
   }
 }

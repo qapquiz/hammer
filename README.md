@@ -26,16 +26,26 @@ mobile wallet, read account state, and run example wallet actions.
 1. Install dependencies.
 
    ```bash
-   npm install
+   bun install
    ```
 
 2. Build and run the Android development client.
 
    ```bash
-   npm run android
+   bun run android
    ```
 
 This template depends on native modules and `expo-dev-client`, so use a development build instead of Expo Go.
+
+3. Or run the web version for a fast UI iteration loop.
+
+   ```bash
+   bun run web
+   ```
+
+   The browser target is useful for validating UI and app-logic changes without rebuilding the native dev
+   client. Mobile Wallet Adapter flows (connecting a wallet, signing) only work on Android, so expect those
+   features to be unavailable in the browser. Cluster data is cached in `localStorage` on web.
 
 You can start developing by editing the files inside the `src` directory. Expo Router routes live in `src/app`, and
 feature code lives in `src/features`.
