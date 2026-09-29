@@ -3,40 +3,10 @@ import { useToast } from 'heroui-native/toast'
 import type { PropsWithChildren } from 'react'
 
 import { formatError } from '@/features/wallet/util/format-error'
+import { isWalletConnectionCanceled } from '@/features/wallet/util/is-wallet-connection-canceled'
 
 const WALLET_CONNECT_TOAST_ID = 'wallet-connect-error'
 
-function getErrorCode(error: unknown) {
-  if (error !== null && typeof error === 'object' && 'code' in error) {
-    return String(error.code)
-  }
-
-  return ''
-}
-
-function getErrorMessage(error: unknown) {
-  if (error instanceof Error) {
-    return error.message
-  }
-
-  if (error !== null && typeof error === 'object' && 'message' in error) {
-    return String(error.message)
-  }
-
-  return typeof error === 'string' ? error : ''
-}
-
-function isWalletConnectionCanceled(error: unknown) {
-  const code = getErrorCode(error)
-  const message = getErrorMessage(error)
-
-  return (
-    code === 'ERROR_ASSOCIATION_CANCELLED' ||
-    code === 'Session not established: Local association cancelled by user' ||
-    message.includes('CancellationException') ||
-    message.includes('Local association cancelled by user')
-  )
-}
 
 export function WalletUiConnectButton({
   children = 'Connect Wallet',
