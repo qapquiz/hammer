@@ -11,10 +11,12 @@ export function installBufferPolyfill() {
   // Buffer-ness on every subarray of a Buffer from any buffer package copy.
   const uint8Subarray = Uint8Array.prototype.subarray
   Object.defineProperty(Uint8Array.prototype, 'subarray', {
-    value: function subarray(start, end) {
+    value: function subarray(this: Uint8Array, start?: number, end?: number) {
       const out = uint8Subarray.call(this, start, end)
-      const ctor = this.constructor
-      if (ctor && typeof ctor.isBuffer === 'function' && ctor.isBuffer(this)) {
+      const ctor = this.constructor as typeof Uint8Array & {
+        isBuffer?: (value: unknown) => boolean
+      }
+      if (typeof ctor.isBuffer === 'function' && ctor.isBuffer(this)) {
         Object.setPrototypeOf(out, ctor.prototype)
       }
       return out
