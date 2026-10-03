@@ -14,6 +14,10 @@ feature file before driving; the recipes assume the launch/doctor/drive conventi
 ## Driving conventions
 
 - Prefer accessible names and `[role=tab]` / `[role=button]` handles over CSS selectors.
+- **Press RN-web pressables with `helpers/press.sh "<text>"`** — agent-browser CDP clicks do not
+  reach RN Pressable handlers here, and its XPath resolver misses existing elements. Inputs are
+  fine with `agent-browser type "input" "<text>"`; icon-only links (e.g. the back link, empty
+  text, `href="/<parent>"`) need a scoped JS click via `agent-browser eval`.
 - Screenshot before and after each user action into `../evidence/<run-name>/` using **absolute**
   paths (agent-browser resolves relative paths against the daemon's cwd).
 - Assert state twice where it matters: what renders **and** what persisted (localStorage key
@@ -26,7 +30,9 @@ feature file before driving; the recipes assume the launch/doctor/drive conventi
 ## Features
 
 - [Navigation tabs](./navigation-tabs.md) — bottom tab bar, stack pushes, back navigation.
-- [Wallet connect](./wallet-connect.md) — Wallet tab and the deterministic connect failure toast on web.
+- [Wallet connect](./wallet-connect.md) — Wallet tab and the Connect Wallet product gap (silent
+  hang on web; the old "failure toast" claim no longer holds).
 - [Cluster settings](./settings-cluster.md) — cluster selection, RPC URL editing, reset, persistence.
 - [Theme switcher](./settings-theme.md) — Dark / Light / System switching and its visible effect.
-- [Tools and wallet actions](./tools-wallet-actions.md) — Tools tab card and the gated actions screen.
+- [Tools and wallet actions](./tools-wallet-actions.md) — the Tools index (Meteora DLMM + Wallet
+  actions cards) and the gated actions screen.

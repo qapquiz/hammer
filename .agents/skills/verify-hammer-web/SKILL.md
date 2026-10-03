@@ -5,9 +5,10 @@ description: >-
   through its web target — react-native-web served by Metro (`expo start --web`) and driven in a
   real browser with agent-browser. Use for any "verify / smoke-test / prove UI behavior" request on
   this repo when no Android emulator is available. Verifiable on web: tab navigation, Settings >
-  Cluster (RPC URL editing, localStorage persistence), Dark/Light/System theme switching, and
-  Connect Wallet's deterministic web failure toast. NOT verifiable on web: real Mobile Wallet
-  Adapter flows (connect, sign, send) — those are Android-only.
+  Cluster (RPC URL editing, localStorage persistence), and Dark/Light/System theme switching.
+  NOT verifiable on web: real Mobile Wallet Adapter flows (connect, sign, send) — those are
+  Android-only. Product gap: tapping Connect Wallet on web hangs silently (no toast/error) —
+  documented in features/wallet-connect.md; press RN pressables with helpers/press.sh.
 ---
 
 # Verify Hammer via the web target
@@ -20,9 +21,13 @@ against this checkout.
 ## What web can and cannot prove
 
 - **Can prove:** routing/tabs, screen composition, theme switching, cluster selection and RPC URL
-  editing with localStorage persistence, form validation, status messages, and the *deterministic
-  failure* of Connect Wallet on web (`Could not connect wallet — Found no installed wallet that
-  supports the mobile wallet protocol.`). That toast is correct web behavior, not a broken run.
+  editing with localStorage persistence, form validation, and status messages.
+- **Product gap (2026-10-04):** the previously documented "deterministic failure toast" for
+  Connect Wallet does **not** reproduce on the current build. Tapping `Connect Wallet` fires the
+  request and then nothing observable happens — no toast, no console error, still disconnected
+  after 20s+ (the web bundle's MWA `transact` never resolves; it contains no
+  "Found no installed wallet" error string). Record `connect-fails-cleanly` as a product gap with
+  evidence (screenshot + console dump + wait), never as verified either way.
 - **Cannot prove:** any Mobile Wallet Adapter flow. Screens behind a connected wallet (balance,
   activity, sign/sign-in/send cards) are unreachable on web. Do not report them verified; record
   them as blocked-by-platform with the attempted entry point.
@@ -68,11 +73,23 @@ agent-browser wait --text "Connect Wallet" --timeout 180000   # waits out the fi
 agent-browser snapshot -i -c                                   # refs @eN, then click @eN
 ```
 
+**Pressing RN-web pressables — use `helpers/press.sh "<text>"` (2026-10-04).** agent-browser's CDP
+clicks never reach react-native-web Pressable handlers here (verified: zero pointer/mouse/click
+events arrive at an instrumented target), and its XPath resolver misses elements that exist
+("✓ Done" clicks that land nowhere). `press.sh` dispatches a synthetic pointer burst
+(pointerdown → mousedown → pointerup → mouseup → click) on `document.elementFromPoint` at the
+innermost visible element containing the text — it reaches RN Pressables, tabs, and links, and
+scrolls into view first. Exception: react-aria-based heroui Select **items** ignore even synthetic
+(untrusted) events — drive cluster switching through the Settings → Cluster rows instead of the
+header popover.
+
 Stable handles (from this repo's source): tab names `Wallet` / `Tools` / `Settings` (`[role=tab]`,
-expo-router bottom tabs); Settings rows are `accessibilityRole="button"` links labeled `Cluster`;
-theme buttons labeled `Dark` / `Light` / `System`; cluster rows are buttons labeled e.g.
-`Localhost No RPC URL configured. Disabled`; the RPC URL textbox has placeholder `RPC URL`; action
-buttons `Update URL` and `Reset to Default`. Routes: `/` (wallet), `/tools`, `/tools/wallet-actions`,
+expo-router bottom tabs); Tools index shows **two** cards — `Meteora DLMM` (→ `/tools/meteora`)
+and `Wallet actions` (→ `/tools/wallet-actions`); Settings rows are
+`accessibilityRole="button"` links labeled `Cluster`; theme buttons labeled `Dark` / `Light` /
+`System`; cluster rows are buttons labeled e.g. `Localhost No RPC URL configured. Disabled`; the
+RPC URL textbox has placeholder `RPC URL`; action buttons `Update URL` and `Reset to Default`.
+Routes: `/` (wallet), `/tools`, `/tools/meteora`, `/tools/meteora/<address>`, `/tools/wallet-actions`,
 `/settings`, `/settings/cluster`.
 
 **Gotcha you WILL hit — LogBox error overlay eats clicks.** The web build logs a benign heroui
@@ -118,7 +135,8 @@ scratch-proof — cleanup must never delete it). A proof of one user path is:
 4. **Console dump** — `agent-browser console` output, so noise (the `colorKit.RGB` error) is
    distinguishable from real failures.
 
-Run dir: `EV=/home/yoki/iceforge/hammer/.agents/skills/verify-hammer-web/evidence/<run-name>`;
+Run dir: `EV=<repo>/.agents/skills/verify-hammer-web/evidence/<run-name>` (repo = this checkout;
+always pass absolute paths to `agent-browser screenshot`);
 screenshot with `agent-browser screenshot "$EV/step.png"`.
 
 Standards: exercise the real user path (clicks on visible elements, real routes); capture the

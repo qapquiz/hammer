@@ -1,15 +1,19 @@
 # Tools and wallet actions
 
-The Tools tab lists one card, `Wallet actions`, linking to `/tools/wallet-actions` — the example
-screen for sign-in, sign-message, and sign-and-send wallet requests. When no wallet is connected
-(always true on web) the screen shows only the gated `Connect Wallet` button.
+The Tools tab lists two cards — `Meteora DLMM` (pool discovery + create-position, see the Android
+map's `meteora-dlmm.md` for behavior; its list/detail render on web) and `Wallet actions`, the
+example screen for sign-in, sign-message, and sign-and-send wallet requests. When no wallet is
+connected (always true on web) the actions screen shows only the gated `Connect Wallet` button.
+(Source: `src/features/tools/tools-feature-entry.tsx` — two `toolItems` since the Meteora commit.)
 
 ## Sub-features
 
-- `tools-list` renders the `Wallet actions` card with its description.
-- `tools-push` the card navigates to `/tools/wallet-actions` with a `Tools, back` link.
+- `tools-list` renders **both** cards, `Meteora DLMM` and `Wallet actions`, with their
+  descriptions. **Proven (2026-10-04).**
+- `tools-push` a card navigates to its route (`/tools/wallet-actions`, `/tools/meteora`) with a
+  back link. **Proven for Wallet actions (2026-10-04).**
 - `actions-gated` unconnected state renders `Connect Wallet` instead of the four action cards
-  (Sign and Send Transaction, Sign In, Sign Message, Sign Transaction).
+  (Sign and Send Transaction, Sign In, Sign Message, Sign Transaction). **Proven (2026-10-04).**
 - `actions-signed` (blocked-by-platform) — the action cards require a connected MWA wallet;
   unreachable on web.
 

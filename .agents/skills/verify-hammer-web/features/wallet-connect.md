@@ -1,14 +1,22 @@
 # Wallet connect
 
-The Wallet tab shows a `Connect Wallet` button when no account is connected. On web, connecting
-deterministically fails because Mobile Wallet Adapter has no wallet provider in a browser — the
-button must surface a clear error toast. That failure toast is the web-verifiable behavior.
+The Wallet tab shows a `Connect Wallet` button when no account is connected. On web, Mobile Wallet
+Adapter has no wallet provider in a browser. **Product gap (2026-10-04):** tapping the button fires
+the connect request and then nothing observable happens — no error toast, no console error, still
+disconnected after 20s+ (the web bundle's MWA `transact` never resolves). The previously documented
+"deterministic failure toast" (`Could not connect wallet` / `Found no installed wallet that
+supports the mobile wallet protocol.`) does **not** reproduce on the current build — do not claim
+it, and do not treat the silent hang as a broken run: it is the current product behavior, recorded
+as a gap for the app owners.
 
 ## Sub-features
 
 - `connect-visible` renders `Connect Wallet` on the Wallet tab (and on `/tools/wallet-actions`).
-- `connect-fails-cleanly` shows the error toast `Could not connect wallet` with description
-  `Found no installed wallet that supports the mobile wallet protocol.` and a `Try again` action.
+  **Proven (2026-10-04).**
+- `connect-fails-cleanly` **not satisfied on the current build** — attempted entry point: Wallet
+  tab → `Connect Wallet` press (helpers `press.sh`), 20s wait. Observed: no toast, no console
+  error, button still present (`evidence/maintenance-web/02-connect-wallet-hang.png`). Report as a
+  product gap with that evidence; re-verify if the app's web connect error handling changes.
 - `connect-android` (blocked-by-platform) — real connection, balance, disconnect; Android only.
 
 ## How to get to it (user POV)
