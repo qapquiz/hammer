@@ -5,16 +5,16 @@ For a connected wallet the Wallet tab shows the account card (label, truncated a
 button opens the Activity screen listing recent transactions for the selected cluster, each with a
 status chip and a link that opens the transaction in Solana Explorer, plus `Refresh activity`.
 
-**Everything in this feature is behind wallet approval: with no MWA wallet app installed on the
-emulator, none of it is reachable today.** This file is the recipe for the day a wallet app is
-installed; until then every drive attempt must be reported as unreachable with that precondition.
+**Reachable and proven with fakewallet (2026-10-04)** against the Surfpool fork: fund the freshly
+authorized dev account with `requestAirdrop`, then `Refresh balance` shows the funded amount and
+the Activity screen lists transactions with status chips and explorer links.
 
 ## Sub-features
 
 - `balance-show` — connected Wallet tab shows the SOL balance for the active cluster.
 - `balance-refresh` — `Refresh balance` re-reads from the cluster RPC and updates the number.
 - `activity-list` — the Activity screen lists recent transactions with signature links and status
-  chips (Processed / Confirmed / Finalized / Failed).
+  chips (`Success` / `Confirmed` / `Pending`, or `Failed` for errored transactions).
 - `activity-refresh` — `Refresh activity` re-reads the recent signatures.
 - `activity-explorer` — tapping a signature link opens Solana Explorer at `/tx/<signature>` in the
   emulator browser.

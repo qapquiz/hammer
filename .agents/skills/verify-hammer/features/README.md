@@ -8,8 +8,11 @@ recipe.
 
 - The app runs on an Android emulator (AVD `solana-mobile`) through Expo dev-client, launched with
   `../helpers/launch.sh`; `../helpers/doctor.sh` passes.
-- Baseline state: no wallet connected (no MWA wallet app is installed on the emulator), cluster
-  **Devnet** (shown in the Wallet header), theme follows the emulator default.
+- Baseline state: cluster **Devnet** (shown in the Wallet header), theme follows the emulator
+  default. A dev MWA wallet (**fakewallet**, patched to submit “mainnet” to a local Surfpool fork on
+  `:8899`) is installed since 2026-10-04 — approve paths are drivable (see SKILL.md → wallet
+  approval boundary). fakewallet mints a fresh keypair per authorization, so a fresh connection
+  starts at 0 balances; fund via the fork's `requestAirdrop` before asserting balance behavior.
 - Never drive an app session you did not start this way; the dev-client launcher screen is not the
   app.
 - No other verification run is using this emulator. App state (cluster, theme) is global to the
@@ -57,10 +60,15 @@ commands, and observable proof.
 
 - [Cluster selection](./cluster-selection.md) — header cluster switcher and the Settings → Cluster
   screen: switching, disabled clusters, RPC URL editing, persistence. **Proven end to end.**
-- [Connect wallet](./connect-wallet.md) — connect button and the no-wallet error path.
-  **Error path proven; approve path preconditioned on an MWA wallet app.**
+- [Connect wallet](./connect-wallet.md) — connect button, the no-wallet error path, the fakewallet
+  approve path, and disconnect. **All paths proven.**
 - [Appearance (theme)](./appearance-theme.md) — Light/Dark/System switcher in Settings.
+  **Proven.**
 - [Balance & activity](./wallet-balance-activity.md) — balance card and Activity screen for a
-  connected wallet. Unreachable without an MWA wallet app today.
+  connected wallet. **Proven with fakewallet + a funded fork account.**
 - [Wallet actions (Tools)](./wallet-actions-tools.md) — sign message, sign transaction, sign-in,
-  sign-and-send memo. Approval-gated like above.
+  sign-and-send memo. **sign-message and sign-and-send proven with fakewallet; sign-transaction
+  and sign-in reuse the same prompt pattern (driven past, not separately asserted).**
+- [Meteora DLMM](./meteora-dlmm.md) — pool discovery, pool detail, and the create-position flow on
+  a Mainnet-cluster RPC (Surfpool fork). **Proven end to end: position created and confirmed on
+  the fork.**

@@ -127,11 +127,17 @@ Proof standards:
   `tmux capture-pane -t metro-verify -p`.
 
 The wallet-approval boundary: Connect / sign / sign-in / sign-and-send all hand off to an external
-MWA wallet app. This emulator has **none installed**, so the only provable path for those flows is
-the error path (danger toast `Could not connect wallet` + the logcat line `Found no installed wallet
-that supports the mobile wallet protocol`). If an MWA wallet app is installed, the approve path
-becomes drivable by walking the wallet's own UI over adb — record that precondition in the run, and
-never claim approve-path verification without it.
+MWA wallet app. **fakewallet (Solana Mobile's dev wallet, patched build) is installed on this
+emulator as of 2026-10-04**, so approve paths are drivable: the wallet surfaces buttons like
+`AUTHORIZE` (authorize/sign) and `SEND TRANSACTION TO CLUSTER` (sign-and-send) — walk them with the
+tap/dump primitives, then assert the result back in Hammer. Two fakewallet behaviors to know: it
+mints a **fresh keypair per authorization** (a reconnect shows a new address with 0 balances — fund
+it on the cluster you test before asserting balance/fee behavior), and its `solana:mainnet` mapping
+is patched to `http://localhost:8899` (Surfpool fork via adb reverse) — on a stock build it would
+submit to real mainnet. On an emulator without any MWA wallet app, the only provable path is the
+error path (danger toast `Could not connect wallet` + the logcat line `Found no installed wallet
+that supports the mobile wallet protocol`) — record which precondition held in every run, and never
+claim approve-path verification without a wallet app present.
 
 ## Cleanup
 

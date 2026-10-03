@@ -97,9 +97,13 @@ Preconditions:
 - While the popover is open, `$HELPERS/tap.sh "Devnet"` would re-tap the trigger (exact desc wins)
   and close it.
 - The header Select popover's items are Compose-hosted and expose no tap geometry to adb (their
-  a11y nodes report zero bounds in every dump mode). Treat the popover as inspect-only: open it,
-  capture it, but switch clusters through the Settings → Cluster screen, whose rows are plain RN
-  touch targets.
+  a11y nodes report zero bounds in every dump mode — the dump may show only the trigger label).
+  Assert the open popover on the **screenshot**, not the `.ui.xml`. Treat the popover as
+  inspect-only: open it, capture it, but switch clusters through the Settings → Cluster screen,
+  whose rows are plain RN touch targets.
+- On this emulator since 2026-10-04, Mainnet is **enabled** (RPC URL → Surfpool fork
+  `http://127.0.0.1:8899`) and is the active cluster — the default-state description above (both
+  disabled) only holds on a fresh install or after `Reset clusters`.
 - The Settings tab is desc `, Settings` (leading comma); the Settings → Cluster card matches the
   contained text `Cluster`. The largest-bounds rule keeps them apart, but check the captured dump
   to confirm what was actually tapped.

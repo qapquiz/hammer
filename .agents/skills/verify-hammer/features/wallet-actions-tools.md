@@ -7,9 +7,11 @@ Each card takes a text input (Sign message defaults to `Hello Solana!`), runs th
 tap, and renders a success or danger status alert with the result. Disconnected, the whole screen
 collapses to a `Connect Wallet` button.
 
-The status alerts and their on-chain side effects are the proof. With no MWA wallet app installed,
-the request cards are unreachable (only the connect button is); that precondition gates everything
-below the first bullet.
+The status alerts and their on-chain side effects are the proof. All four cards are drivable with
+fakewallet installed (sign/send prompts expose `AUTHORIZE` to approve and `SEND TRANSACTION TO
+CLUSTER` to submit). `sign-message` and `sign-and-send` were proven live on 2026-10-04;
+`sign-transaction` and `sign-in` reuse the same prompt pattern — drive and assert them the same
+way, per card.
 
 ## Sub-features
 

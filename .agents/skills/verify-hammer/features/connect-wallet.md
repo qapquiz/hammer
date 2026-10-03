@@ -13,10 +13,11 @@ this is today's only drivable path and it is fully observable.
   (`Could not connect wallet` / `Found no installed wallet that supports the mobile wallet
   protocol.`) and a `Try again` button; logcat records the native cause.
 - `connect-approve` — with an MWA wallet installed, the wallet app opens the authorization prompt
-  and approval replaces the button with the account card. **Unreachable today** (no wallet app on
-  the emulator).
+  and approval replaces the button with the account card. **Proven with fakewallet (2026-10-04):**
+  tap `Connect Wallet`, fakewallet comes foreground with an `AUTHORIZE DAPP` prompt, tap `AUTHORIZE`,
+  and the dump shows `Disconnect wallet` (account card).
 - `disconnect` — the connected account card exposes `Disconnect wallet` and returns to the
-  connect button. **Unreachable today** (requires a connection).
+  connect button. **Proven with fakewallet (2026-10-04).**
 
 ## How to get to it (user POV)
 
@@ -27,8 +28,10 @@ this is today's only drivable path and it is fully observable.
 
 Preconditions:
 
-- App session up (`launch.sh`), `doctor.sh` passes, no MWA wallet app installed on the emulator
-  (`adb shell pm list packages | grep -i solana` returns none beyond system packages).
+- App session up (`launch.sh`), `doctor.sh` passes. For the no-wallet error path you additionally
+  need an emulator with no MWA wallet app (`adb shell pm list packages | grep -i solana` shows none
+  beyond system packages) — fakewallet is installed today, so on this emulator drive the approve
+  path; the error path needs a wallet-free emulator.
 
 - **Confirm the entry.** Run
   `$HELPERS/tap.sh "Connect Wallet" --check` — exit 0 and `FOUND: desc='Connect Wallet' ...`
@@ -58,12 +61,13 @@ Preconditions:
 - **Second view.** The toast disappears on its own after a few seconds; a later capture without the
   toast plus the retained artifacts above is the paired state evidence.
 
-- **Approve path (only with an MWA wallet installed).** Precondition: install an MWA-compatible
-  wallet APK on the emulator and fund/prepare it per the wallet's own docs. Then
-  `$HELPERS/tap.sh "Connect Wallet"`, wait for the wallet app to come foreground
-  (`adb shell dumpsys window | grep mCurrentFocus`), and walk the wallet's prompt with the same
-  tap/dump primitives. Approval must yield the account card (a dump showing `Disconnect wallet`).
-  If the wallet app is absent, report `connect-approve` as unreachable with this precondition.
+- **Approve path (fakewallet installed).** `$HELPERS/tap.sh "Connect Wallet"`, wait for
+  `com.solana.mobilewalletadapter.fakewallet/.MobileWalletAdapterActivity` to be the resumed
+  activity, then tap its `AUTHORIZE` button and assert back in Hammer: a dump showing
+  `Disconnect wallet` (account card). fakewallet mints a fresh keypair on every authorization —
+  the address changes across reconnects and starts at 0 balances; on a Surfpool fork fund it with
+  `requestAirdrop` before any balance assertion. Its sign/send prompts expose `SIMULATE SUBMITTED`,
+  `SIMULATE SUBMIT FAILED`, and `SEND TRANSACTION TO CLUSTER` (the real send).
 
 ## Gotchas
 
