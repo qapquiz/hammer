@@ -7,7 +7,6 @@ import { isWalletConnectionCanceled } from '@/features/wallet/util/is-wallet-con
 
 const WALLET_CONNECT_TOAST_ID = 'wallet-connect-error'
 
-
 export function WalletUiConnectButton({
   children = 'Connect Wallet',
   connect,
@@ -24,10 +23,13 @@ export function WalletUiConnectButton({
 
       toast.show({
         actionLabel: 'Try again',
+        // Finite, not 'persistent': the card is a full-width touchable strip, so an
+        // undismissable toast parks the tab bar until process death. 8s is enough to
+        // read the error and reach Try again without bricking navigation.
+        duration: 8000,
         description: isCanceled
           ? 'The wallet connection request was dismissed before authorization completed.'
           : formatError(error),
-        duration: 'persistent',
         id: WALLET_CONNECT_TOAST_ID,
         label: isCanceled ? 'Wallet connection canceled' : 'Could not connect wallet',
         onActionPress: ({ hide }) => {
