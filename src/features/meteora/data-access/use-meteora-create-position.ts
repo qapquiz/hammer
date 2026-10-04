@@ -17,7 +17,8 @@ import {
 import { meteoraActiveBinQueryOptions } from './use-meteora-active-bin'
 import { createPositionFlowReducer } from '../util/create-position-flow'
 import { executeMeteoraCreatePosition } from '../util/execute-meteora-create-position'
-import { planPosition, validatePositionDraft } from '../util/meteora-position'
+import { placementIssue } from '../util/meteora-liquidity-shape'
+import { planPosition, toBaseUnits, validatePositionDraft } from '../util/meteora-position'
 
 export interface UseMeteoraCreatePositionProps {
   account: Account
@@ -78,6 +79,19 @@ export function useMeteoraCreatePosition({ account, client, pool }: UseMeteoraCr
       dispatch({ type: 'preview', draft })
       try {
         const activeBin = await queryClient.fetchQuery(meteoraActiveBinQueryOptions(cluster, draft.poolAddress))
+        // Fail fast on wrong-side liquidity once the active bin is known, before planning.
+        const issue = placementIssue({
+          range: { minBinId: draft.minBinId, maxBinId: draft.maxBinId },
+          activeBinId: activeBin.binId,
+          amountXBaseUnits: toBaseUnits(draft.amountX, pool.tokenX.decimals) ?? 0n,
+          amountYBaseUnits: toBaseUnits(draft.amountY, pool.tokenY.decimals) ?? 0n,
+          symbolX: pool.tokenX.symbol,
+          symbolY: pool.tokenY.symbol,
+        })
+        if (issue) {
+          dispatch({ type: 'previewFailed', error: new Error(issue) })
+          return
+        }
         dispatch({
           type: 'previewed',
           plan: planPosition({ activeBin, draft, tokenX: pool.tokenX, tokenY: pool.tokenY }),

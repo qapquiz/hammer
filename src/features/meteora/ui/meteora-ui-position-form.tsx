@@ -6,15 +6,25 @@ import { View } from 'react-native'
 import { formatTokenPrice } from '../util/meteora-format'
 import type {
   MeteoraActiveBin,
+  MeteoraBinRange,
+  MeteoraCandle,
   MeteoraCreatePositionFlow,
   MeteoraPool,
   MeteoraPositionDraft,
   MeteoraPositionPreview,
   MeteoraRentQuote,
   MeteoraStrategyPreset,
+  MeteoraStrategyType,
 } from '../data-access/meteora-types'
 import { METEORA_STRATEGY_PRESETS } from '../data-access/meteora-types'
+import type { MeteoraBinWeight } from '../util/meteora-liquidity-shape'
 import { draftFromPreset } from '../util/meteora-position'
+import { MeteoraUiPriceChart } from './meteora-ui-price-chart'
+
+const STRATEGY_LABELS: readonly { strategyType: MeteoraStrategyType; label: string }[] = [
+  { strategyType: 'spot', label: 'Spot' },
+  { strategyType: 'bidAsk', label: 'Bid-Ask' },
+]
 
 /** Presets are macros, not state: a chip is "selected" while the draft still matches its width + strategy. */
 function matchesPreset(draft: MeteoraPositionDraft, preset: MeteoraStrategyPreset): boolean {
@@ -23,26 +33,34 @@ function matchesPreset(draft: MeteoraPositionDraft, preset: MeteoraStrategyPrese
 
 export function MeteoraUiPositionForm({
   activeBin,
+  candles,
+  candlesError,
   draft,
   flow,
   onConfirm,
   onDraftChange,
   onPreview,
+  onRangeChange,
   onReset,
   pool,
   positionPreview,
   rentQuote,
+  shape,
 }: {
   activeBin: MeteoraActiveBin | undefined
+  candles: readonly MeteoraCandle[] | null
+  candlesError?: string | null
   draft: MeteoraPositionDraft
   flow: MeteoraCreatePositionFlow
   onConfirm: () => void
   onDraftChange: (draft: MeteoraPositionDraft) => void
   onPreview: () => void
+  onRangeChange: (range: MeteoraBinRange) => void
   onReset: () => void
   pool: MeteoraPool
   positionPreview: MeteoraPositionPreview | null
   rentQuote: MeteoraRentQuote | undefined
+  shape: readonly MeteoraBinWeight[]
 }) {
   const inFlight =
     flow.status === 'previewing' ||
@@ -89,8 +107,37 @@ export function MeteoraUiPositionForm({
         </View>
         <Card.Description>
           {(activeBin && METEORA_STRATEGY_PRESETS.find((preset) => matchesPreset(draft, preset))?.description) ??
-            'Custom range.'}
+            'Custom range — drag the chart handles or tap a preset.'}
         </Card.Description>
+
+        <View className="flex-row items-center gap-2">
+          <Card.Description className="text-sm">Strategy</Card.Description>
+          {STRATEGY_LABELS.map(({ strategyType, label }) => (
+            <Button
+              isDisabled={inFlight}
+              key={strategyType}
+              size="sm"
+              variant={draft.strategyType === strategyType ? 'primary' : 'secondary'}
+              onPress={() => onDraftChange({ ...draft, strategyType })}
+            >
+              {label}
+            </Button>
+          ))}
+        </View>
+
+        {activeBin ? (
+          <MeteoraUiPriceChart
+            activeBin={activeBin}
+            candles={candles}
+            disabled={inFlight}
+            onRangeChange={onRangeChange}
+            range={{ minBinId: draft.minBinId, maxBinId: draft.maxBinId }}
+            shape={shape}
+          />
+        ) : null}
+        {candlesError && (candles === null || candles.length === 0) ? (
+          <Card.Description className="text-danger">Price history unavailable: {candlesError}</Card.Description>
+        ) : null}
 
         <View className="gap-2">
           <Input
