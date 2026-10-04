@@ -104,6 +104,14 @@ Preconditions:
   the spl-token helper (`getAssociatedTokenAddressSync`), not a hand-rolled
   `[owner, mint, tokenProgram]` order (that yields a different, wrong address; the app's own
   balance pre-check has this bug — see the run notes / report).
+- **Seeding token accounts must set `state=1`.** A raw 165-byte `surfnet_setAccount` write with
+  mint(0..32), owner(32..64), amount u64 LE (64..72) leaves the SPL `state` field at offset 108
+  as 0 = uninitialized. RPC reads accept it, so balance checks pass, but the Token program
+  rejects it at execution (`UninitializedAccount` / `instruction requires an initialized account`
+  inside AddLiquidityByStrategy2) — simulating as "insufficient funds" downstream. Write
+  `state=1` at offset 108, and prove the seed with a raw token-transfer simulation from the
+  seeded account, not a getAccountInfo read (proven 2026-10-04,
+  `../artifacts/sim-debug-2026-10-04/`).
 - The detail screen's SDK queries are gated on a connected wallet (`enabled: !!account`) — with
   no wallet connected the screen makes no RPC calls, so a fork can be tested UI-only only down to
   the connect gate.
