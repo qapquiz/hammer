@@ -181,7 +181,7 @@ async function doCreateDlmmPool({
             signers: requiresPositionSignature(legacyTransaction, positionKeypair.publicKey) ? [positionKeyPair] : [],
             onFailure: () =>
               new Error(
-                `Transaction for preset '${plan.presetId}' (${plan.binCount} bins, ${plan.minBinId}..${plan.maxBinId}) exceeds the transaction size limit. Try a narrower range.`,
+                `Transaction for ${plan.binCount} bins (${plan.minBinId}..${plan.maxBinId}) exceeds the transaction size limit. Try a narrower range.`,
               ),
           }),
         )

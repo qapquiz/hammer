@@ -11,8 +11,15 @@ import type {
   MeteoraPositionDraft,
   MeteoraPositionPreview,
   MeteoraRentQuote,
+  MeteoraStrategyPreset,
 } from '../data-access/meteora-types'
 import { METEORA_STRATEGY_PRESETS } from '../data-access/meteora-types'
+import { draftFromPreset } from '../util/meteora-position'
+
+/** Presets are macros, not state: a chip is "selected" while the draft still matches its width + strategy. */
+function matchesPreset(draft: MeteoraPositionDraft, preset: MeteoraStrategyPreset): boolean {
+  return draft.strategyType === preset.strategyType && (draft.maxBinId - draft.minBinId) / 2 === preset.binsPerSide
+}
 
 export function MeteoraUiPositionForm({
   activeBin,
@@ -57,22 +64,32 @@ export function MeteoraUiPositionForm({
         </View>
 
         <View className="flex-row flex-wrap gap-2">
-          {METEORA_STRATEGY_PRESETS.map((preset) => {
-            const selected = draft.presetId === preset.id
-            return (
-              <Button
-                key={preset.id}
-                size="sm"
-                variant={selected ? 'primary' : 'outline'}
-                onPress={() => onDraftChange({ ...draft, presetId: preset.id })}
-              >
-                {preset.label}
-              </Button>
-            )
-          })}
+          {METEORA_STRATEGY_PRESETS.map((preset) => (
+            <Button
+              key={preset.id}
+              isDisabled={!activeBin || inFlight}
+              size="sm"
+              variant={activeBin && matchesPreset(draft, preset) ? 'primary' : 'outline'}
+              onPress={() => {
+                if (!activeBin) {
+                  return
+                }
+                const presetDraft = draftFromPreset({ poolAddress: draft.poolAddress, presetId: preset.id, activeBin })
+                onDraftChange({
+                  ...draft,
+                  minBinId: presetDraft.minBinId,
+                  maxBinId: presetDraft.maxBinId,
+                  strategyType: presetDraft.strategyType,
+                })
+              }}
+            >
+              {preset.label}
+            </Button>
+          ))}
         </View>
         <Card.Description>
-          {METEORA_STRATEGY_PRESETS.find((preset) => preset.id === draft.presetId)?.description}
+          {(activeBin && METEORA_STRATEGY_PRESETS.find((preset) => matchesPreset(draft, preset))?.description) ??
+            'Custom range.'}
         </Card.Description>
 
         <View className="gap-2">

@@ -4,12 +4,15 @@ import { describe, expect, test } from 'bun:test'
 import type { MeteoraActiveBin, MeteoraDepositDraft, MeteoraPositionDraft } from '../data-access/meteora-types'
 import {
   binPrice,
+  clampBinRange,
   derivePresetRange,
+  derivePositionPreview,
+  draftFromPreset,
+  getStrategyPreset,
   planClose,
   planDeposit,
   planPosition,
   planWithdraw,
-  resolveStrategy,
   toBaseUnits,
   validateDepositDraft,
   validatePositionDraft,
@@ -44,7 +47,9 @@ const TOKEN_Y = {
 function draft(overrides: Partial<MeteoraPositionDraft> = {}): MeteoraPositionDraft {
   return {
     poolAddress: ACTIVE_BIN.poolAddress,
-    presetId: 'spot-narrow',
+    minBinId: 992,
+    maxBinId: 1008,
+    strategyType: 'spot',
     amountX: '1',
     amountY: '2',
     ...overrides,
@@ -77,16 +82,67 @@ describe('toBaseUnits', () => {
 
 describe('derivePresetRange', () => {
   test('clamps at the pool min and max bin', () => {
-    const clamped = derivePresetRange(
-      { ...resolveStrategy(draft({ presetId: 'spot-wide' })), id: 'spot-wide' },
-      ACTIVE_BIN,
-    )
+    const clamped = derivePresetRange(getStrategyPreset('spot-wide'), ACTIVE_BIN)
     expect(clamped.minBinId).toBe(980)
     expect(clamped.maxBinId).toBe(1020)
 
-    const unclamped = derivePresetRange(resolveStrategy(draft({ presetId: 'spot-narrow' })), ACTIVE_BIN)
+    const unclamped = derivePresetRange(getStrategyPreset('spot-narrow'), ACTIVE_BIN)
     expect(unclamped.minBinId).toBe(992)
     expect(unclamped.maxBinId).toBe(1008)
+  })
+})
+
+describe('draftFromPreset', () => {
+  test('generates the preset range, strategy, and empty amounts', () => {
+    const generated = draftFromPreset({
+      poolAddress: ACTIVE_BIN.poolAddress,
+      presetId: 'bid-ask',
+      activeBin: ACTIVE_BIN,
+    })
+    expect(generated).toEqual({
+      poolAddress: ACTIVE_BIN.poolAddress,
+      minBinId: 984,
+      maxBinId: 1016,
+      strategyType: 'bidAsk',
+      amountX: '',
+      amountY: '',
+    })
+  })
+
+  test('clamps to the pool bounds near an edge', () => {
+    const nearFloor = draftFromPreset({
+      poolAddress: ACTIVE_BIN.poolAddress,
+      presetId: 'spot-wide',
+      activeBin: { ...ACTIVE_BIN, binId: 981 },
+    })
+    expect(nearFloor.minBinId).toBe(980)
+    expect(nearFloor.maxBinId).toBe(1015)
+  })
+})
+
+describe('clampBinRange', () => {
+  const BOUNDS = { minBinId: ACTIVE_BIN.minBinId, maxBinId: ACTIVE_BIN.maxBinId }
+
+  test('orders an inverted range and clamps to the pool bounds', () => {
+    expect(clampBinRange({ minBinId: 1010, maxBinId: 990 }, BOUNDS)).toEqual({ minBinId: 990, maxBinId: 1010 })
+    expect(clampBinRange({ minBinId: 0, maxBinId: 2000 }, BOUNDS)).toEqual({ minBinId: 980, maxBinId: 1020 })
+  })
+
+  test('enforces the minimum width, widening downward first', () => {
+    expect(clampBinRange({ minBinId: 1000, maxBinId: 1000 }, BOUNDS)).toEqual({ minBinId: 999, maxBinId: 1000 })
+    expect(clampBinRange({ minBinId: 980, maxBinId: 980 }, BOUNDS)).toEqual({ minBinId: 980, maxBinId: 981 })
+  })
+
+  test('lets the pool bounds win when the pool is narrower than minBins', () => {
+    expect(clampBinRange({ minBinId: 995, maxBinId: 1005 }, { minBinId: 1000, maxBinId: 1000 })).toEqual({
+      minBinId: 1000,
+      maxBinId: 1000,
+    })
+  })
+
+  test('is idempotent', () => {
+    const once = clampBinRange({ minBinId: 1002, maxBinId: 996 }, BOUNDS)
+    expect(clampBinRange(once, BOUNDS)).toEqual(once)
   })
 })
 
@@ -99,6 +155,19 @@ describe('binPrice', () => {
     // 100 * (1 + 10/10000)^1 = 100.1, and ^-1 = 100/1.001 = 99.9000999...
     expect(binPrice(100, 10, 1)).toBeCloseTo(100.1, 10)
     expect(binPrice(100, 10, -1)).toBeCloseTo(99.9000999000999, 10)
+  })
+})
+
+describe('derivePositionPreview', () => {
+  test('reads an asymmetric range as-is instead of re-centering on the active bin', () => {
+    const preview = derivePositionPreview(draft({ minBinId: 990, maxBinId: 1015 }), ACTIVE_BIN)
+    expect(preview).toEqual({
+      minBinId: 990,
+      maxBinId: 1015,
+      binCount: 26,
+      minPrice: binPrice(100, 10, -10),
+      maxPrice: binPrice(100, 10, 15),
+    })
   })
 })
 
@@ -121,10 +190,10 @@ describe('planPosition', () => {
     expect(plan.activeBinIdAtPlanTime).toBe(1000)
   })
 
-  test('honors an explicit binsPerSide override over the preset width', () => {
+  test('keeps the drafted range and strategy as-is', () => {
     const plan = planPosition({
       activeBin: ACTIVE_BIN,
-      draft: draft({ binsPerSide: 3 }),
+      draft: draft({ minBinId: 997, maxBinId: 1003, strategyType: 'bidAsk' }),
       tokenX: TOKEN_X,
       tokenY: TOKEN_Y,
     })
@@ -132,17 +201,20 @@ describe('planPosition', () => {
     expect(plan.minBinId).toBe(997)
     expect(plan.maxBinId).toBe(1003)
     expect(plan.binCount).toBe(7)
+    expect(plan.strategyType).toBe('bidAsk')
   })
 
-  test('honors a strategyType override', () => {
+  test('re-clamps a draft that escapes the pool bounds', () => {
     const plan = planPosition({
       activeBin: ACTIVE_BIN,
-      draft: draft({ strategyType: 'bidAsk' }),
+      draft: draft({ minBinId: 900, maxBinId: 1100 }),
       tokenX: TOKEN_X,
       tokenY: TOKEN_Y,
     })
 
-    expect(plan.strategyType).toBe('bidAsk')
+    expect(plan.minBinId).toBe(980)
+    expect(plan.maxBinId).toBe(1020)
+    expect(plan.binCount).toBe(41)
   })
 
   test('throws on amounts the token decimals cannot express', () => {

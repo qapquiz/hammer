@@ -88,7 +88,6 @@ async function main(): Promise<number> {
     const active = await dlmm.getActiveBin()
     const plan: MeteoraPositionPlan = {
       poolAddress: address(poolAddress),
-      presetId: 'spot-narrow',
       strategyType: 'spot',
       minBinId: active.binId - 2,
       maxBinId: active.binId + 2,
