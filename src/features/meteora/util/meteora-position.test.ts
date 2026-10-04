@@ -227,6 +227,25 @@ describe('planPosition', () => {
       }),
     ).toThrow('Cannot plan a position from invalid amounts.')
   })
+
+  test('refuses wrong-side liquidity with the typed token named', () => {
+    expect(() =>
+      planPosition({
+        activeBin: ACTIVE_BIN,
+        draft: draft({ minBinId: 1002, maxBinId: 1010, amountX: '0', amountY: '1' }),
+        tokenX: TOKEN_X,
+        tokenY: TOKEN_Y,
+      }),
+    ).toThrow('This range sits above the active bin — wSOL cannot be deposited into it.')
+    expect(() =>
+      planPosition({
+        activeBin: ACTIVE_BIN,
+        draft: draft({ minBinId: 982, maxBinId: 990, amountX: '1', amountY: '0' }),
+        tokenX: TOKEN_X,
+        tokenY: TOKEN_Y,
+      }),
+    ).toThrow('This range sits below the active bin — USDC cannot be deposited into it.')
+  })
 })
 
 describe('validatePositionDraft', () => {

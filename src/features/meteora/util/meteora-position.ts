@@ -14,6 +14,7 @@ import {
   type MeteoraToken,
   type MeteoraWithdrawPlan,
 } from '../data-access/meteora-types'
+import { placementIssue } from './meteora-liquidity-shape'
 
 export function getStrategyPreset(presetId: MeteoraStrategyPresetId): MeteoraStrategyPreset {
   const preset = METEORA_STRATEGY_PRESETS.find((candidate) => candidate.id === presetId)
@@ -278,6 +279,17 @@ export function planPosition({
     throw new Error('Cannot plan a position from invalid amounts.')
   }
   const range = clampBinRange({ minBinId: draft.minBinId, maxBinId: draft.maxBinId }, activeBin)
+  const issue = placementIssue({
+    range,
+    activeBinId: activeBin.binId,
+    amountXBaseUnits,
+    amountYBaseUnits,
+    symbolX: tokenX.symbol,
+    symbolY: tokenY.symbol,
+  })
+  if (issue) {
+    throw new Error(issue)
+  }
   return {
     poolAddress: draft.poolAddress,
     strategyType: draft.strategyType,
