@@ -35,8 +35,9 @@ recipe.
 
 - Capture the user action and the resulting state, not only the final screen.
 - Record the feature ID and the entry point used with every artifact set.
-- Wallet-approval flows require an MWA wallet app installed on the emulator. None is installed
-  today: their provable path is the documented error path, and everything behind approval is
+- Wallet-approval flows require an MWA wallet app installed on the emulator. The baseline
+  preconditions above say which one is installed today (fakewallet); without any MWA wallet the
+  only provable path is the documented error path and everything behind approval is
   **unreachable**. Report an unreachable path with the attempted entry point and the unmet
   precondition — never as verified through a different path.
 - Native wallet-protocol failures are evidenced with logcat (see SKILL.md → Evidence), UI failures
@@ -69,6 +70,9 @@ commands, and observable proof.
 - [Wallet actions (Tools)](./wallet-actions-tools.md) — sign message, sign transaction, sign-in,
   sign-and-send memo. **sign-message and sign-and-send proven with fakewallet; sign-transaction
   and sign-in reuse the same prompt pattern (driven past, not separately asserted).**
-- [Meteora DLMM](./meteora-dlmm.md) — pool discovery, pool detail, and the create-position flow on
-  a Mainnet-cluster RPC (Surfpool fork). **Proven end to end: position created and confirmed on
-  the fork.**
+- [Meteora DLMM](./meteora-dlmm.md) — pool discovery, pool detail, the create-position flow, and
+  the owned-positions manager (deposit / withdraw / close) on a Mainnet-cluster RPC (Surfpool
+  fork). **pools-list / pool-detail / gates / position-form proven end to end; position-create
+  proven on the fork (`fakewallet-flow`); positions-list empty state + honest-failure states
+  proven (`maintenance-2026-10-04-b`); deposit / withdraw / close and the populated list have
+  recipes but are not yet proven live.**
