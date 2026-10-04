@@ -4,31 +4,28 @@ import type { Account, SolanaCluster, useMobileWallet } from '@wallet-ui/react-n
 import type { SolanaClient } from '@/features/cluster/data-access/create-solana-client'
 import { assertCanPayTransactionFee } from '@/features/wallet/util/assert-can-pay-transaction-fee'
 
-import { isDlmmClusterSupported, type MeteoraPositionPlan } from '../data-access/meteora-types'
+import { isDlmmClusterSupported, type MeteoraPositionActionPlan } from '../data-access/meteora-types'
 import { createDlmmPool } from './dlmm-sdk'
 import {
   assertTokenBalances,
   awaitConfirmations,
   feeForAllTransactions,
-  foldInRent,
   normalizeSignature,
 } from './execute-meteora-shared'
 
-export type MeteoraCreatePositionStage =
-  | { stage: 'building' }
-  | { stage: 'signing' }
-  | { stage: 'confirming'; signatures: readonly string[]; positionAddress: Address }
+export type MeteoraPositionActionStage =
+  { stage: 'building' } | { stage: 'signing' } | { stage: 'confirming'; signatures: readonly string[] }
 
-export interface MeteoraCreatePositionResult {
+export interface MeteoraPositionActionResult {
   signatures: readonly string[]
-  positionAddress: Address
   confirmationSlot: bigint | null
 }
 
-export { splTokenAmountFromAccountData } from './execute-meteora-shared'
-export { MeteoraConfirmationTimeoutError, MeteoraTransactionFailedError } from './execute-meteora-shared'
-
-export async function executeMeteoraCreatePosition({
+/**
+ * One send rail for deposit, withdraw, and close: build per plan kind, check fee
+ * affordability (plus token balances for a deposit), then send and poll to confirmation.
+ */
+export async function executeMeteoraPositionAction({
   account,
   client,
   cluster,
@@ -39,12 +36,12 @@ export async function executeMeteoraCreatePosition({
   account: Account
   client: SolanaClient
   cluster: SolanaCluster
-  onStage: (stage: MeteoraCreatePositionStage) => void
-  plan: MeteoraPositionPlan
+  onStage: (stage: MeteoraPositionActionStage) => void
+  plan: MeteoraPositionActionPlan
   signAndSendTransaction: ReturnType<typeof useMobileWallet>['signAndSendTransaction']
-}): Promise<MeteoraCreatePositionResult> {
+}): Promise<MeteoraPositionActionResult> {
   if (!isDlmmClusterSupported(cluster.id)) {
-    throw new Error('Meteora DLMM positions can only be created on the Mainnet cluster.')
+    throw new Error('Meteora DLMM positions can only be managed on the Mainnet cluster.')
   }
 
   onStage({ stage: 'building' })
@@ -56,8 +53,7 @@ export async function executeMeteoraCreatePosition({
     value: latestBlockhash,
   } = await client.rpc.getLatestBlockhash({ commitment: 'confirmed' }).send()
 
-  const built = await dlmm.buildCreatePosition(plan, account.address, latestBlockhash.blockhash)
-  const rent = await dlmm.quoteRentSol({ minBinId: plan.minBinId, maxBinId: plan.maxBinId })
+  const built = await dlmm.buildPositionAction(plan, account.address, latestBlockhash.blockhash)
 
   const [{ value: balance }, { value: fee }] = await Promise.all([
     client.rpc.getBalance(account.address, { commitment: 'confirmed' }).send(),
@@ -68,20 +64,28 @@ export async function executeMeteoraCreatePosition({
       )
       .send(),
   ])
-
   const totalFee = feeForAllTransactions(fee, built.transactions.length)
-  const feeWithRent = foldInRent(totalFee, rent)
-  assertCanPayTransactionFee({ balance, fee: feeWithRent })
-  const committedSol = feeWithRent === null ? 0n : feeWithRent
+  assertCanPayTransactionFee({ balance, fee: totalFee })
 
-  const required: { amount: bigint; mint: Address; label: string }[] = []
-  if (plan.amountXBaseUnits > 0n) {
-    required.push({ amount: plan.amountXBaseUnits, mint: plan.tokenX.address, label: plan.tokenX.symbol || 'token X' })
+  if (plan.kind === 'deposit') {
+    const committedSol = totalFee === null ? 0n : totalFee
+    const required: { amount: bigint; mint: Address; label: string }[] = []
+    if (plan.amountXBaseUnits > 0n) {
+      required.push({
+        amount: plan.amountXBaseUnits,
+        mint: plan.tokenX.address,
+        label: plan.tokenX.symbol || 'token X',
+      })
+    }
+    if (plan.amountYBaseUnits > 0n) {
+      required.push({
+        amount: plan.amountYBaseUnits,
+        mint: plan.tokenY.address,
+        label: plan.tokenY.symbol || 'token Y',
+      })
+    }
+    await assertTokenBalances({ account, client, entries: required, solLamports: balance - committedSol })
   }
-  if (plan.amountYBaseUnits > 0n) {
-    required.push({ amount: plan.amountYBaseUnits, mint: plan.tokenY.address, label: plan.tokenY.symbol || 'token Y' })
-  }
-  await assertTokenBalances({ account, client, entries: required, solLamports: balance - committedSol })
 
   onStage({ stage: 'signing' })
   const signatures: string[] = []
@@ -90,8 +94,7 @@ export async function executeMeteoraCreatePosition({
     signatures.push(normalizeSignature(rawSignature))
   }
 
-  onStage({ stage: 'confirming', signatures, positionAddress: built.positionAddress })
-
+  onStage({ stage: 'confirming', signatures })
   const confirmationSlot = await awaitConfirmations({ client, signatures })
-  return { signatures, positionAddress: built.positionAddress, confirmationSlot }
+  return { signatures, confirmationSlot }
 }

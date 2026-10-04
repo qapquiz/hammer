@@ -24,3 +24,15 @@ export function formatTokenPrice(price: number): string {
   }
   return price.toPrecision(4)
 }
+
+/** Base units → human token string, BigInt end to end: no float precision loss. */
+export function formatBaseUnits(amount: bigint | string, decimals: number): string {
+  const value = typeof amount === 'bigint' ? amount : BigInt(amount)
+  const negative = value < 0n
+  const digits = (negative ? -value : value).toString().padStart(decimals + 1, '0')
+  const split = digits.length - decimals
+  const whole = digits.slice(0, split)
+  const fraction = decimals > 0 ? digits.slice(split).replace(/0+$/, '') : ''
+  const text = fraction ? `${whole}.${fraction}` : whole
+  return negative ? `-${text}` : text
+}

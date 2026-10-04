@@ -199,6 +199,104 @@ export interface MeteoraBuiltPosition {
   transactions: readonly Transaction[]
 }
 
+/** One owned position of a pool, as the list query and the manage flows consume it. All amounts base units. */
+export interface MeteoraPosition {
+  address: Address
+  poolAddress: Address
+  lowerBinId: number
+  upperBinId: number
+  amountXBaseUnits: bigint
+  amountYBaseUnits: bigint
+  /** Unclaimed swap fees. */
+  feeXBaseUnits: bigint
+  feeYBaseUnits: bigint
+  /** Pending farm rewards (reward zero/one on the position). */
+  rewardOneBaseUnits: bigint
+  rewardTwoBaseUnits: bigint
+  /** Pool active bin when the position was fetched, for the in-range chip. */
+  activeBinId: number
+}
+
+export function meteoraPositionHasLiquidity(position: MeteoraPosition): boolean {
+  return position.amountXBaseUnits > 0n || position.amountYBaseUnits > 0n
+}
+
+export function meteoraPositionHasPendingRewards(position: MeteoraPosition): boolean {
+  return position.rewardOneBaseUnits > 0n || position.rewardTwoBaseUnits > 0n
+}
+
+/** What the deposit form produces. Amounts are human-unit strings exactly as typed. */
+export interface MeteoraDepositDraft {
+  poolAddress: Address
+  positionAddress: Address
+  amountX: string
+  amountY: string
+}
+
+/** Deposits spread evenly (spot) across the position's existing bin range. */
+export interface MeteoraDepositPlan {
+  kind: 'deposit'
+  poolAddress: Address
+  positionAddress: Address
+  /** The position's own range; deposits cannot widen it. */
+  minBinId: number
+  maxBinId: number
+  amountXBaseUnits: bigint
+  amountYBaseUnits: bigint
+  tokenX: MeteoraToken
+  tokenY: MeteoraToken
+  slippagePercent: number
+  activeBinIdAtPlanTime: number
+}
+
+/** What the withdraw form produces. */
+export interface MeteoraWithdrawDraft {
+  poolAddress: Address
+  positionAddress: Address
+  /** Integer percent 1..100 of every bin's liquidity to remove. */
+  percent: number
+}
+
+export interface MeteoraWithdrawPlan {
+  kind: 'withdraw'
+  poolAddress: Address
+  positionAddress: Address
+  minBinId: number
+  maxBinId: number
+  /** Basis points of each bin's liquidity to remove; 10_000 = 100%. */
+  percentBps: number
+  percent: number
+}
+
+/** Close claims pending swap fees first, then reclaims the position's rent. */
+export interface MeteoraClosePlan {
+  kind: 'close'
+  poolAddress: Address
+  positionAddress: Address
+  feeXBaseUnits: bigint
+  feeYBaseUnits: bigint
+}
+
+export type MeteoraPositionActionPlan = MeteoraDepositPlan | MeteoraWithdrawPlan | MeteoraClosePlan
+
+/**
+ * idle → building → signing → confirming → confirmed, plus failed and dismissed. No preview
+ * stage: deposit/withdraw/close validation is local, so the first async step is building.
+ */
+export type MeteoraPositionFlow =
+  | { status: 'idle' }
+  | { status: 'building'; plan: MeteoraPositionActionPlan }
+  | { status: 'signing'; plan: MeteoraPositionActionPlan }
+  | { status: 'confirming'; plan: MeteoraPositionActionPlan; signatures: readonly string[] }
+  | {
+      status: 'confirmed'
+      plan: MeteoraPositionActionPlan
+      signatures: readonly string[]
+      confirmationSlot: bigint | null
+    }
+  | { status: 'failed'; plan: MeteoraPositionActionPlan | null; error: unknown; progress?: MeteoraPartialProgress }
+  | { status: 'dismissed'; plan: MeteoraPositionActionPlan }
+
 export interface MeteoraBinRange {
   minBinId: number
   maxBinId: number
@@ -223,6 +321,8 @@ export const meteoraQueryKeys = {
       range?.minBinId ?? null,
       range?.maxBinId ?? null,
     ] as const,
+  positions: (cluster: SolanaCluster, poolAddress: Address, user: Address) =>
+    ['meteora-positions', cluster.id, cluster.url, poolAddress, user] as const,
 }
 
 export const METEORA_SUPPORTED_CLUSTER_ID: SolanaClusterId = 'solana:mainnet'

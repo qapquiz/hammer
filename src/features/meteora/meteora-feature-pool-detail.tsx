@@ -1,4 +1,4 @@
-import { getExplorerUrl, useMobileWallet } from '@wallet-ui/react-native-kit'
+import { getExplorerUrl, useMobileWallet, type Account } from '@wallet-ui/react-native-kit'
 import { Alert } from 'heroui-native/alert'
 import { Card } from 'heroui-native/card'
 import { Chip } from 'heroui-native/chip'
@@ -14,9 +14,14 @@ import { isDlmmClusterSupported, type MeteoraPositionDraft, type MeteoraPool } f
 import { useMeteoraActiveBin } from './data-access/use-meteora-active-bin'
 import { useMeteoraCreatePosition } from './data-access/use-meteora-create-position'
 import { useMeteoraPool } from './data-access/use-meteora-pool'
+import { useMeteoraPositionActions } from './data-access/use-meteora-position-actions'
+import { useMeteoraPositions } from './data-access/use-meteora-positions'
 import { useMeteoraRentQuote } from './data-access/use-meteora-rent-quote'
 import { MeteoraUiFlowStatus } from './ui/meteora-ui-flow-status'
 import { MeteoraUiPositionForm } from './ui/meteora-ui-position-form'
+import { MeteoraUiPositionFlowStatus } from './ui/meteora-ui-position-flow-status'
+import { MeteoraUiPositionManager } from './ui/meteora-ui-position-manager'
+import { MeteoraUiPositionsList } from './ui/meteora-ui-positions-list'
 import { formatPercentFraction, formatTokenPrice, formatUsdCompact } from './util/meteora-format'
 import { derivePresetPreview, validatePositionDraft } from './util/meteora-position'
 
@@ -37,6 +42,7 @@ export function MeteoraFeaturePoolDetail({ poolAddress }: { poolAddress: Address
       {pool.data && mainnet ? (
         <CreatePositionSection account={wallet.account} connect={wallet.connect} pool={pool.data} />
       ) : null}
+      {pool.data && mainnet && wallet.account ? <PositionsSection account={wallet.account} pool={pool.data} /> : null}
     </ShellUiPage>
   )
 }
@@ -97,7 +103,7 @@ function MainnetOnlyBanner() {
     <Alert status="warning">
       <Alert.Title>Mainnet required</Alert.Title>
       <Alert.Description>
-        Meteora pool data and position creation only work on the Mainnet cluster. Switch clusters from the header.
+        Meteora pool data and position management only work on the Mainnet cluster. Switch clusters from the header.
       </Alert.Description>
     </Alert>
   )
@@ -176,5 +182,44 @@ function CreatePositionSection({
       ) : null}
       <MeteoraUiFlowStatus flow={createPosition.flow} />
     </>
+  )
+}
+
+function PositionsSection({ account, pool }: { account: Account; pool: MeteoraPool }) {
+  const { client } = useAppCluster()
+  const positions = useMeteoraPositions(pool.address, account.address)
+  const actions = useMeteoraPositionActions({ account, client, pool })
+  const [selectedAddress, setSelectedAddress] = useState<Address | null>(null)
+  const selected = positions.data?.find((candidate) => candidate.address === selectedAddress) ?? null
+  const flowActive =
+    actions.flow.status === 'building' || actions.flow.status === 'signing' || actions.flow.status === 'confirming'
+
+  return (
+    <View className="gap-4">
+      <MeteoraUiPositionsList
+        error={positions.error}
+        isError={positions.isError}
+        isLoading={positions.isPending}
+        onRefresh={() => void positions.refetch()}
+        onSelect={(address) => {
+          // Switching targets mid-flight would orphan the running flow under a new manager.
+          if (!flowActive) {
+            setSelectedAddress(address)
+          }
+        }}
+        pool={pool}
+        positions={positions.data}
+        selectedAddress={selectedAddress}
+      />
+      {selected ? (
+        <MeteoraUiPositionManager
+          actions={actions}
+          onDismiss={() => setSelectedAddress(null)}
+          pool={pool}
+          position={selected}
+        />
+      ) : null}
+      {actions.flow.status !== 'idle' ? <MeteoraUiPositionFlowStatus flow={actions.flow} /> : null}
+    </View>
   )
 }

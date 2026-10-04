@@ -12,6 +12,7 @@ import {
   setTransactionMessageLifetimeUsingBlockhash,
   type Address,
   type Blockhash,
+  type Transaction as KitTransaction,
 } from '@solana/kit'
 import { getSetComputeUnitLimitInstruction, getSetComputeUnitPriceInstruction } from '@solana-program/compute-budget'
 import { ComputeBudgetProgram, Connection, Keypair, PublicKey } from '@solana/web3.js'
@@ -30,6 +31,8 @@ import {
   type MeteoraActiveBin,
   type MeteoraBinRange,
   type MeteoraBuiltPosition,
+  type MeteoraPosition,
+  type MeteoraPositionActionPlan,
   type MeteoraPositionPlan,
   type MeteoraRentQuote,
 } from '../data-access/meteora-types'
@@ -42,6 +45,14 @@ export interface DlmmPool {
   getActiveBin(): Promise<MeteoraActiveBin>
   quoteRentSol(range: MeteoraBinRange): Promise<MeteoraRentQuote>
   buildCreatePosition(plan: MeteoraPositionPlan, user: Address, recentBlockhash: string): Promise<MeteoraBuiltPosition>
+  /** Every position the user owns on this pool, with fresh amounts, fees, and the active bin. */
+  getPositions(user: Address): Promise<MeteoraPosition[]>
+  /** Builds the deposit/withdraw/close transactions for one plan. */
+  buildPositionAction(
+    plan: MeteoraPositionActionPlan,
+    user: Address,
+    recentBlockhash: string,
+  ): Promise<{ transactions: readonly KitTransaction[] }>
 }
 
 /**
@@ -180,6 +191,95 @@ async function doCreateDlmmPool({
         positionAddress: address(positionKeypair.publicKey.toBase58()),
         transactions,
       }
+    },
+
+    async getPositions(user: Address): Promise<MeteoraPosition[]> {
+      const { activeBin, userPositions } = await dlmm.getPositionsByUserAndLbPair(new PublicKey(user))
+      return userPositions.map((position) => ({
+        address: address(position.publicKey.toBase58()),
+        poolAddress,
+        lowerBinId: position.positionData.lowerBinId,
+        upperBinId: position.positionData.upperBinId,
+        // The SDK surfaces total amounts as decimal strings and BN for fees/rewards; BigInt everywhere.
+        amountXBaseUnits: BigInt(position.positionData.totalXAmount),
+        amountYBaseUnits: BigInt(position.positionData.totalYAmount),
+        feeXBaseUnits: BigInt(position.positionData.feeX.toString()),
+        feeYBaseUnits: BigInt(position.positionData.feeY.toString()),
+        rewardOneBaseUnits: BigInt(position.positionData.rewardOne.toString()),
+        rewardTwoBaseUnits: BigInt(position.positionData.rewardTwo.toString()),
+        activeBinId: activeBin.binId,
+      }))
+    },
+
+    async buildPositionAction(
+      plan: MeteoraPositionActionPlan,
+      user: Address,
+      recentBlockhash: string,
+    ): Promise<{ transactions: readonly KitTransaction[] }> {
+      const legacyTransactions: Transaction[] = []
+      if (plan.kind === 'deposit') {
+        const built = await dlmm.addLiquidityByStrategyChunkable({
+          positionPubKey: new PublicKey(plan.positionAddress),
+          totalXAmount: new BN(plan.amountXBaseUnits.toString()),
+          totalYAmount: new BN(plan.amountYBaseUnits.toString()),
+          strategy: {
+            minBinId: plan.minBinId,
+            maxBinId: plan.maxBinId,
+            strategyType: METEORA_STRATEGY_TYPE_CODE.spot as StrategyType,
+          },
+          user: new PublicKey(user),
+          slippage: plan.slippagePercent,
+        })
+        legacyTransactions.push(...built)
+      } else if (plan.kind === 'withdraw') {
+        const built = await dlmm.removeLiquidity({
+          user: new PublicKey(user),
+          position: new PublicKey(plan.positionAddress),
+          fromBinId: plan.minBinId,
+          toBinId: plan.maxBinId,
+          // The program takes basis points per bin, so 10_000 removes every bin fully.
+          bps: new BN(plan.percentBps),
+        })
+        legacyTransactions.push(...built)
+      } else {
+        // Close on-chain requires an empty position; the plan is built from possibly stale
+        // list data, so re-read the position and enforce emptiness and pending claims here.
+        const position = await dlmm.getPosition(new PublicKey(plan.positionAddress))
+        const data = position.positionData
+        if (BigInt(data.totalXAmount) > 0n || BigInt(data.totalYAmount) > 0n) {
+          throw new Error('This position still has liquidity. Withdraw 100% before closing.')
+        }
+        if (data.rewardOne.isZero() === false || data.rewardTwo.isZero() === false) {
+          throw new Error(
+            'This position has pending farm rewards. Claim them (e.g. in the Meteora web app) before closing, or the rewards are lost.',
+          )
+        }
+        if (data.feeX.isZero() === false || data.feeY.isZero() === false) {
+          const claimTxs = await dlmm.claimSwapFee({ owner: new PublicKey(user), position })
+          legacyTransactions.push(...claimTxs)
+        }
+        legacyTransactions.push(await dlmm.closePosition({ owner: new PublicKey(user), position }))
+      }
+
+      // Existing positions are referenced writable, never signers, so no extra keypairs here.
+      const transactions: KitTransaction[] = []
+      for (const legacyTransaction of legacyTransactions) {
+        transactions.push(
+          await compileToKitTransaction({
+            feePayer: user,
+            recentBlockhash,
+            instructions: legacyTransaction.instructions
+              .filter((instruction) => instruction.programId.toBase58() !== COMPUTE_BUDGET_PROGRAM_ADDRESS)
+              .map(legacyToKitInstruction),
+            signers: [],
+            onFailure: () =>
+              new Error(
+                `A ${plan.kind} transaction for position ${plan.positionAddress} exceeds the transaction size limit.`,
+              ),
+          }),
+        )
+      }
+      return { transactions }
     },
   }
 }

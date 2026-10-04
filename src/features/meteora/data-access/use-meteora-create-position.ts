@@ -25,7 +25,6 @@ export interface UseMeteoraCreatePositionProps {
   pool: MeteoraPool
 }
 
-
 export function useMeteoraCreatePosition({ account, client, pool }: UseMeteoraCreatePositionProps) {
   const { cluster } = useAppCluster()
   const wallet = useMobileWallet()

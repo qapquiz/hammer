@@ -1,11 +1,7 @@
 import type { Address } from '@solana/kit'
 
-import type {
-  MeteoraCreatePositionFlow,
-  MeteoraPartialProgress,
-  MeteoraPositionDraft,
-  MeteoraPositionPlan,
-} from '../data-access/meteora-types'
+import type { MeteoraCreatePositionFlow, MeteoraPositionDraft, MeteoraPositionPlan } from '../data-access/meteora-types'
+import { partialProgressFromError } from './flow-progress'
 
 export type MeteoraCreatePositionEvent =
   | { type: 'preview'; draft: MeteoraPositionDraft }
@@ -91,28 +87,4 @@ export function createPositionFlowReducer(
     case 'reset':
       return { status: 'idle' }
   }
-}
-
-/**
- * The executor's typed errors carry signatures plus a confirmedCount so a mid-send failure or
- * a polling timeout can be reported per step ("step 2 of 3 failed").
- */
-function partialProgressFromError(error: unknown): MeteoraPartialProgress | undefined {
-  if (typeof error !== 'object' || error === null) {
-    return undefined
-  }
-  const candidate = error as { signatures?: unknown; confirmedCount?: unknown; totalCount?: unknown }
-  if (
-    Array.isArray(candidate.signatures) &&
-    candidate.signatures.every((signature) => typeof signature === 'string') &&
-    typeof candidate.confirmedCount === 'number' &&
-    typeof candidate.totalCount === 'number'
-  ) {
-    return {
-      signatures: candidate.signatures as readonly string[],
-      confirmedCount: candidate.confirmedCount,
-      totalCount: candidate.totalCount,
-    }
-  }
-  return undefined
 }
