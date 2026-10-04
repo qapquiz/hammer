@@ -30,8 +30,8 @@ import { MeteoraUiPositionFlowStatus } from './ui/meteora-ui-position-flow-statu
 import { MeteoraUiPositionManager } from './ui/meteora-ui-position-manager'
 import { MeteoraUiPositionsList } from './ui/meteora-ui-positions-list'
 import { formatPercentFraction, formatTokenPrice, formatUsdCompact } from './util/meteora-format'
-import { liquidityWeights } from './util/meteora-liquidity-shape'
-import { derivePositionPreview, draftFromPreset, validatePositionDraft } from './util/meteora-position'
+import { allocateLiquidity } from './util/meteora-liquidity-shape'
+import { derivePositionPreview, draftFromPreset, toBaseUnits, validatePositionDraft } from './util/meteora-position'
 
 const DEFAULT_PRESET_ID = 'spot-narrow' as const
 
@@ -181,17 +181,32 @@ function CreatePositionSection({
   }, [effectiveRange])
   const rent = useMeteoraRentQuote(pool.address, debouncedRange, { enabled: !!account })
   const effectiveStrategyType = effectiveDraft?.strategyType ?? null
-  const shape = useMemo(
-    () =>
-      effectiveRange && activeBin.data
-        ? liquidityWeights({
-            range: effectiveRange,
-            activeBinId: activeBin.data.binId,
-            strategyType: effectiveStrategyType ?? 'spot',
-          })
-        : [],
-    [effectiveRange, activeBin.data, effectiveStrategyType],
-  )
+  // Bars scale by per-bin USD value (strategy curve × typed amounts), so typing only one
+  // token visibly empties the other side. Invalid or unpriced amounts degrade to the
+  // strategy's relative weights.
+  const shape = useMemo(() => {
+    if (!effectiveRange || !activeBin.data) {
+      return []
+    }
+    const allocation = allocateLiquidity({
+      range: effectiveRange,
+      activeBinId: activeBin.data.binId,
+      strategyType: effectiveStrategyType ?? 'spot',
+      amountXBaseUnits: (effectiveDraft ? toBaseUnits(effectiveDraft.amountX, pool.tokenX.decimals) : null) ?? 0n,
+      amountYBaseUnits: (effectiveDraft ? toBaseUnits(effectiveDraft.amountY, pool.tokenY.decimals) : null) ?? 0n,
+    })
+    const priceX = pool.tokenX.priceUsd ?? 0
+    const priceY = pool.tokenY.priceUsd ?? 0
+    const usd = allocation.map((bar) => Number(bar.amountXBaseUnits) * priceX + Number(bar.amountYBaseUnits) * priceY)
+    const maxUsd = Math.max(0, ...usd.filter((value) => Number.isFinite(value)))
+    if (!(maxUsd > 0)) {
+      return allocation.map((bar) => ({ binId: bar.binId, weight: bar.weight }))
+    }
+    return allocation.map((bar, index) => ({
+      binId: bar.binId,
+      weight: Number.isFinite(usd[index]) ? usd[index] / maxUsd : 0,
+    }))
+  }, [effectiveRange, activeBin.data, effectiveStrategyType, effectiveDraft, pool.tokenX, pool.tokenY])
   const draftIssue = useMemo(
     () => (effectiveDraft ? validatePositionDraft(effectiveDraft, pool.tokenX.decimals, pool.tokenY.decimals) : null),
     [effectiveDraft, pool.tokenX.decimals, pool.tokenY.decimals],

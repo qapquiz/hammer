@@ -126,32 +126,6 @@ export function allocateLiquidity(input: {
   }))
 }
 
-/**
- * Merges ceil(n/maxBars) adjacent bins per bar: amounts sum, weight is the group max.
- * Valid because the log-price y-axis makes pixels-per-bin uniform across the range.
- * Expects allocations sorted ascending by binId, which allocateLiquidity produces.
- */
-export function bucketAllocations(
-  allocations: readonly MeteoraBinAllocation[],
-  maxBars: number,
-): MeteoraBinAllocation[] {
-  if (maxBars < 1 || allocations.length === 0) {
-    return [...allocations]
-  }
-  const groupSize = Math.ceil(allocations.length / maxBars)
-  const merged: MeteoraBinAllocation[] = []
-  for (let start = 0; start < allocations.length; start += groupSize) {
-    const group = allocations.slice(start, start + groupSize)
-    merged.push({
-      binId: group[0].binId,
-      weight: Math.max(...group.map((allocation) => allocation.weight)),
-      amountXBaseUnits: group.reduce((sum, allocation) => sum + allocation.amountXBaseUnits, 0n),
-      amountYBaseUnits: group.reduce((sum, allocation) => sum + allocation.amountYBaseUnits, 0n),
-    })
-  }
-  return merged
-}
-
 /** Shared by create validation: refuses wrong-side liquidity with the token the user actually typed. */
 export function placementIssue(input: {
   range: MeteoraBinRange

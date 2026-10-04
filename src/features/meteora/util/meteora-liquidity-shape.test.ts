@@ -3,7 +3,6 @@ import { describe, expect, test } from 'bun:test'
 import {
   allocateLiquidity,
   binSide,
-  bucketAllocations,
   liquidityWeights,
   placementIssue,
   type MeteoraBinAllocation,
@@ -96,30 +95,6 @@ describe('allocateLiquidity', () => {
     const atActive = allocations.find((allocation) => allocation.binId === ACTIVE_BIN_ID)
     const adjacent = allocations.find((allocation) => allocation.binId === ACTIVE_BIN_ID + 1)
     expect((atActive?.amountXBaseUnits ?? 0n) > (adjacent?.amountXBaseUnits ?? 0n)).toBe(true)
-  })
-})
-
-describe('bucketAllocations', () => {
-  const allocations: MeteoraBinAllocation[] = Array.from({ length: 10 }, (_, index) => ({
-    binId: 100 + index,
-    weight: (index + 1) / 55,
-    amountXBaseUnits: BigInt(index + 1),
-    amountYBaseUnits: BigInt(10 - index),
-  }))
-
-  test('merges ceil(n/maxBars) adjacent bins and preserves totals exactly', () => {
-    const merged = bucketAllocations(allocations, 3)
-    expect(merged.length).toBe(3)
-    expect(merged.reduce((sum, bar) => sum + bar.amountXBaseUnits, 0n)).toBe(55n)
-    expect(merged.reduce((sum, bar) => sum + bar.amountYBaseUnits, 0n)).toBe(55n)
-    // Group of 4+4+2: weight is each group's max, binId its leading bin.
-    expect(merged.map((bar) => bar.binId)).toEqual([100, 104, 108])
-    expect(merged.map((bar) => bar.weight)).toEqual([4 / 55, 8 / 55, 10 / 55])
-  })
-
-  test('returns the input shape unchanged when maxBars covers every bin', () => {
-    expect(bucketAllocations(allocations, 10).length).toBe(10)
-    expect(bucketAllocations(allocations, 99).length).toBe(10)
   })
 })
 
