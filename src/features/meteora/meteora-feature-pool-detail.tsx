@@ -3,16 +3,23 @@ import { Alert } from 'heroui-native/alert'
 import { Card } from 'heroui-native/card'
 import { Chip } from 'heroui-native/chip'
 import { ActivityIndicator, Linking, Pressable, Text, View } from 'react-native'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Address } from '@solana/kit'
 
 import { useAppCluster } from '@/features/cluster/data-access/cluster-provider'
 import { ShellUiPage } from '@/features/shell/ui/shell-ui-page'
 import { WalletUiConnectButton } from '@/features/wallet/ui/wallet-ui-connect-button'
 
-import { isDlmmClusterSupported, type MeteoraPositionDraft, type MeteoraPool } from './data-access/meteora-types'
+import {
+  isDlmmClusterSupported,
+  type MeteoraBinRange,
+  type MeteoraPositionDraft,
+  type MeteoraPool,
+  type MeteoraStrategyType,
+} from './data-access/meteora-types'
 import { useMeteoraActiveBin } from './data-access/use-meteora-active-bin'
 import { useMeteoraCreatePosition } from './data-access/use-meteora-create-position'
+import { useMeteoraOhlcv } from './data-access/use-meteora-ohlcv'
 import { useMeteoraPool } from './data-access/use-meteora-pool'
 import { useMeteoraPositionActions } from './data-access/use-meteora-position-actions'
 import { useMeteoraPositions } from './data-access/use-meteora-positions'
@@ -23,9 +30,10 @@ import { MeteoraUiPositionFlowStatus } from './ui/meteora-ui-position-flow-statu
 import { MeteoraUiPositionManager } from './ui/meteora-ui-position-manager'
 import { MeteoraUiPositionsList } from './ui/meteora-ui-positions-list'
 import { formatPercentFraction, formatTokenPrice, formatUsdCompact } from './util/meteora-format'
-import { derivePresetPreview, validatePositionDraft } from './util/meteora-position'
+import { allocateLiquidity } from './util/meteora-liquidity-shape'
+import { derivePositionPreview, draftFromPreset, toBaseUnits, validatePositionDraft } from './util/meteora-position'
 
-const EMPTY_DRAFT = { presetId: 'spot-narrow' as const, amountX: '', amountY: '' }
+const DEFAULT_PRESET_ID = 'spot-narrow' as const
 
 export function MeteoraFeaturePoolDetail({ poolAddress }: { poolAddress: Address }) {
   const { cluster } = useAppCluster()
@@ -119,24 +127,116 @@ function CreatePositionSection({
   pool: MeteoraPool
 }) {
   const { client } = useAppCluster()
-  const [draft, setDraft] = useState<MeteoraPositionDraft>({ ...EMPTY_DRAFT, poolAddress: pool.address })
+  // Geometry and amounts live in separate states: amount keystrokes never materialize
+  // geometry, so a refetching active bin can keep re-centering the untouched default range.
+  const [spec, setSpec] = useState<{ minBinId: number; maxBinId: number; strategyType: MeteoraStrategyType } | null>(
+    null,
+  )
+  const [amounts, setAmounts] = useState({ amountX: '', amountY: '' })
+  const draft = useMemo<MeteoraPositionDraft | null>(
+    () => (spec ? { poolAddress: pool.address, ...spec, ...amounts } : null),
+    [spec, amounts, pool.address],
+  )
 
   const activeBin = useMeteoraActiveBin(pool.address, { enabled: !!account })
+  const ohlcv = useMeteoraOhlcv(pool.address, { enabled: !!account })
   const createPosition = useMeteoraCreatePosition({ account: account!, client, pool })
 
+  const fallbackDraft = useMemo(
+    () =>
+      activeBin.data
+        ? draftFromPreset({ poolAddress: pool.address, presetId: DEFAULT_PRESET_ID, activeBin: activeBin.data })
+        : null,
+    [activeBin.data, pool.address],
+  )
+  const effectiveDraft = useMemo<MeteoraPositionDraft | null>(
+    () => draft ?? (fallbackDraft ? { ...fallbackDraft, ...amounts } : null),
+    [draft, fallbackDraft, amounts],
+  )
   const positionPreview = useMemo(
-    () => (account && activeBin.data ? derivePresetPreview(draft, activeBin.data) : null),
-    [account, activeBin.data, draft],
+    () => (account && activeBin.data && effectiveDraft ? derivePositionPreview(effectiveDraft, activeBin.data) : null),
+    [account, activeBin.data, effectiveDraft],
   )
-  const rent = useMeteoraRentQuote(
-    pool.address,
-    positionPreview ? { minBinId: positionPreview.minBinId, maxBinId: positionPreview.maxBinId } : null,
-    { enabled: !!account },
+  const effectiveMinBinId = effectiveDraft?.minBinId ?? null
+  const effectiveMaxBinId = effectiveDraft?.maxBinId ?? null
+  const effectiveRange = useMemo<MeteoraBinRange | null>(
+    () =>
+      effectiveMinBinId === null || effectiveMaxBinId === null
+        ? null
+        : { minBinId: effectiveMinBinId, maxBinId: effectiveMaxBinId },
+    [effectiveMinBinId, effectiveMaxBinId],
   )
+  // Rent is keyed on the debounced range: preview stats stay live per bin crossing while a
+  // long drag fires one rent query per pause, not per bin.
+  const [debouncedRange, setDebouncedRange] = useState<MeteoraBinRange | null>(null)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedRange((previous) =>
+        previous?.minBinId === effectiveRange?.minBinId && previous?.maxBinId === effectiveRange?.maxBinId
+          ? previous
+          : effectiveRange,
+      )
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [effectiveRange])
+  const rent = useMeteoraRentQuote(pool.address, debouncedRange, { enabled: !!account })
+  const effectiveStrategyType = effectiveDraft?.strategyType ?? null
+  // Bars scale by per-bin USD value (strategy curve × typed amounts), so typing only one
+  // token visibly empties the other side. Invalid or unpriced amounts degrade to the
+  // strategy's relative weights.
+  const shape = useMemo(() => {
+    if (!effectiveRange || !activeBin.data) {
+      return []
+    }
+    const allocation = allocateLiquidity({
+      range: effectiveRange,
+      activeBinId: activeBin.data.binId,
+      strategyType: effectiveStrategyType ?? 'spot',
+      amountXBaseUnits: (effectiveDraft ? toBaseUnits(effectiveDraft.amountX, pool.tokenX.decimals) : null) ?? 0n,
+      amountYBaseUnits: (effectiveDraft ? toBaseUnits(effectiveDraft.amountY, pool.tokenY.decimals) : null) ?? 0n,
+    })
+    const priceX = pool.tokenX.priceUsd ?? 0
+    const priceY = pool.tokenY.priceUsd ?? 0
+    const usd = allocation.map((bar) => Number(bar.amountXBaseUnits) * priceX + Number(bar.amountYBaseUnits) * priceY)
+    const maxUsd = Math.max(0, ...usd.filter((value) => Number.isFinite(value)))
+    if (!(maxUsd > 0)) {
+      return allocation.map((bar) => ({ binId: bar.binId, weight: bar.weight }))
+    }
+    return allocation.map((bar, index) => ({
+      binId: bar.binId,
+      weight: Number.isFinite(usd[index]) ? usd[index] / maxUsd : 0,
+    }))
+  }, [effectiveRange, activeBin.data, effectiveStrategyType, effectiveDraft, pool.tokenX, pool.tokenY])
   const draftIssue = useMemo(
-    () => validatePositionDraft(draft, pool.tokenX.decimals, pool.tokenY.decimals),
-    [draft, pool.tokenX.decimals, pool.tokenY.decimals],
+    () => (effectiveDraft ? validatePositionDraft(effectiveDraft, pool.tokenX.decimals, pool.tokenY.decimals) : null),
+    [effectiveDraft, pool.tokenX.decimals, pool.tokenY.decimals],
   )
+
+  const handleDraftChange = (next: MeteoraPositionDraft) => {
+    setSpec((previous) => {
+      const sameGeometry =
+        previous !== null &&
+        previous.minBinId === next.minBinId &&
+        previous.maxBinId === next.maxBinId &&
+        previous.strategyType === next.strategyType
+      return sameGeometry
+        ? previous
+        : { minBinId: next.minBinId, maxBinId: next.maxBinId, strategyType: next.strategyType }
+    })
+    setAmounts((previous) =>
+      previous.amountX === next.amountX && previous.amountY === next.amountY
+        ? previous
+        : { amountX: next.amountX, amountY: next.amountY },
+    )
+  }
+
+  const handleRangeChange = (next: MeteoraBinRange) => {
+    setSpec((previous) =>
+      previous && previous.minBinId === next.minBinId && previous.maxBinId === next.maxBinId
+        ? previous
+        : { ...next, strategyType: previous?.strategyType ?? effectiveStrategyType ?? 'spot' },
+    )
+  }
 
   if (!account) {
     return (
@@ -163,19 +263,27 @@ function CreatePositionSection({
     )
   }
 
+  if (!effectiveDraft) {
+    return <ActivityIndicator />
+  }
+
   return (
     <>
       <MeteoraUiPositionForm
         activeBin={activeBin.data}
-        draft={draft}
+        candles={ohlcv.data ?? null}
+        candlesError={ohlcv.isError ? ohlcv.error.message : null}
+        draft={effectiveDraft}
         flow={createPosition.flow}
         onConfirm={createPosition.confirm}
-        onDraftChange={setDraft}
-        onPreview={() => void createPosition.preview(draft)}
+        onDraftChange={handleDraftChange}
+        onPreview={() => void createPosition.preview(effectiveDraft)}
+        onRangeChange={handleRangeChange}
         onReset={createPosition.reset}
         pool={pool}
         positionPreview={positionPreview}
         rentQuote={rent.data}
+        shape={shape}
       />
       {draftIssue && createPosition.flow.status === 'idle' ? (
         <Text className="text-muted text-sm">{draftIssue}</Text>

@@ -10,33 +10,18 @@ import {
   type MeteoraPositionPlan,
   type MeteoraPositionPreview,
   type MeteoraStrategyPreset,
+  type MeteoraStrategyPresetId,
   type MeteoraToken,
   type MeteoraWithdrawPlan,
 } from '../data-access/meteora-types'
+import { placementIssue } from './meteora-liquidity-shape'
 
-export function getStrategyPreset(presetId: MeteoraPositionDraft['presetId']): MeteoraStrategyPreset {
+export function getStrategyPreset(presetId: MeteoraStrategyPresetId): MeteoraStrategyPreset {
   const preset = METEORA_STRATEGY_PRESETS.find((candidate) => candidate.id === presetId)
   if (!preset) {
     throw new Error(`Unknown strategy preset: ${presetId}`)
   }
   return preset
-}
-
-/** Applies the draft's explicit binsPerSide / strategyType overrides on top of its preset. */
-export function resolveStrategy(draft: MeteoraPositionDraft): MeteoraStrategyPreset {
-  const preset = getStrategyPreset(draft.presetId)
-  if (draft.binsPerSide === undefined && draft.strategyType === undefined) {
-    return preset
-  }
-  const binsPerSide = draft.binsPerSide ?? preset.binsPerSide
-  if (!Number.isInteger(binsPerSide) || binsPerSide < 1) {
-    throw new Error(`Invalid binsPerSide: must be a positive integer, got ${draft.binsPerSide}`)
-  }
-  return {
-    ...preset,
-    binsPerSide,
-    strategyType: draft.strategyType ?? preset.strategyType,
-  }
 }
 
 export function derivePresetRange(preset: MeteoraStrategyPreset, activeBin: MeteoraActiveBin): MeteoraBinRange {
@@ -46,20 +31,64 @@ export function derivePresetRange(preset: MeteoraStrategyPreset, activeBin: Mete
   }
 }
 
+/** Conservative SDK-safety floor on range width; presets never produce fewer than 16 bins. */
+export const MIN_RANGE_BINS = 2
+
+/** The one enforcer of order, pool bounds, and minimum width; re-checked in planPosition. */
+export function clampBinRange(
+  range: MeteoraBinRange,
+  bounds: { minBinId: number; maxBinId: number },
+  minBins = MIN_RANGE_BINS,
+): MeteoraBinRange {
+  let minBinId = Math.max(Math.min(range.minBinId, range.maxBinId), bounds.minBinId)
+  let maxBinId = Math.min(Math.max(range.minBinId, range.maxBinId), bounds.maxBinId)
+  const missing = minBins - 1 - (maxBinId - minBinId)
+  if (missing > 0) {
+    // Widen downward first; when the pool itself is narrower than minBins, the bounds win.
+    const lower = Math.min(missing, minBinId - bounds.minBinId)
+    minBinId -= lower
+    maxBinId = Math.min(maxBinId + (missing - lower), bounds.maxBinId)
+  }
+  return { minBinId, maxBinId }
+}
+
+/** The one preset→state generator; chip taps and the default draft both go through it. */
+export function draftFromPreset({
+  poolAddress,
+  presetId,
+  activeBin,
+}: {
+  poolAddress: MeteoraPositionDraft['poolAddress']
+  presetId: MeteoraStrategyPresetId
+  activeBin: MeteoraActiveBin
+}): MeteoraPositionDraft {
+  const preset = getStrategyPreset(presetId)
+  const range = derivePresetRange(preset, activeBin)
+  return {
+    poolAddress,
+    minBinId: range.minBinId,
+    maxBinId: range.maxBinId,
+    strategyType: preset.strategyType,
+    amountX: '',
+    amountY: '',
+  }
+}
+
 export function binPrice(activePrice: number, binStep: number, binDelta: number): number {
   return activePrice * (1 + binStep / 10_000) ** binDelta
 }
 
-export function derivePresetPreview(draft: MeteoraPositionDraft, activeBin: MeteoraActiveBin): MeteoraPositionPreview {
-  const preset = resolveStrategy(draft)
-  const range = derivePresetRange(preset, activeBin)
+/** Reads the draft's range as-is — never re-centers on the active bin; prices via binPrice. */
+export function derivePositionPreview(
+  draft: MeteoraPositionDraft,
+  activeBin: MeteoraActiveBin,
+): MeteoraPositionPreview {
   return {
-    presetId: draft.presetId,
-    minBinId: range.minBinId,
-    maxBinId: range.maxBinId,
-    binCount: range.maxBinId - range.minBinId + 1,
-    minPrice: binPrice(activeBin.price, activeBin.binStep, range.minBinId - activeBin.binId),
-    maxPrice: binPrice(activeBin.price, activeBin.binStep, range.maxBinId - activeBin.binId),
+    minBinId: draft.minBinId,
+    maxBinId: draft.maxBinId,
+    binCount: draft.maxBinId - draft.minBinId + 1,
+    minPrice: binPrice(activeBin.price, activeBin.binStep, draft.minBinId - activeBin.binId),
+    maxPrice: binPrice(activeBin.price, activeBin.binStep, draft.maxBinId - activeBin.binId),
   }
 }
 
@@ -244,17 +273,26 @@ export function planPosition({
   tokenX: MeteoraPositionPlan['tokenX']
   tokenY: MeteoraPositionPlan['tokenY']
 }): MeteoraPositionPlan {
-  const preset = resolveStrategy(draft)
-  const range = derivePresetRange(preset, activeBin)
   const amountXBaseUnits = toBaseUnits(draft.amountX, tokenX.decimals)
   const amountYBaseUnits = toBaseUnits(draft.amountY, tokenY.decimals)
   if (amountXBaseUnits === null || amountYBaseUnits === null) {
     throw new Error('Cannot plan a position from invalid amounts.')
   }
+  const range = clampBinRange({ minBinId: draft.minBinId, maxBinId: draft.maxBinId }, activeBin)
+  const issue = placementIssue({
+    range,
+    activeBinId: activeBin.binId,
+    amountXBaseUnits,
+    amountYBaseUnits,
+    symbolX: tokenX.symbol,
+    symbolY: tokenY.symbol,
+  })
+  if (issue) {
+    throw new Error(issue)
+  }
   return {
     poolAddress: draft.poolAddress,
-    presetId: draft.presetId,
-    strategyType: preset.strategyType,
+    strategyType: draft.strategyType,
     minBinId: range.minBinId,
     maxBinId: range.maxBinId,
     binCount: range.maxBinId - range.minBinId + 1,

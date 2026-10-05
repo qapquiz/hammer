@@ -111,22 +111,34 @@ export const METEORA_COMPUTE_UNIT_LIMIT = 600_000
 
 export const METEORA_CONFIRMATION_TIMEOUT_MS = 60_000
 
-/** What the form produces. Amounts are human-unit strings exactly as typed. */
+/**
+ * What the form produces. The range is primary state: presets are generators (draftFromPreset)
+ * and a chart drag writes these fields directly. Amounts are human-unit strings exactly as typed.
+ */
 export interface MeteoraPositionDraft {
   poolAddress: Address
-  presetId: MeteoraStrategyPresetId
-  /** Overrides the preset's range width when set. */
-  binsPerSide?: number
-  /** Overrides the preset's strategy when set. */
-  strategyType?: MeteoraStrategyType
+  minBinId: number
+  maxBinId: number
+  strategyType: MeteoraStrategyType
   amountX: string
   amountY: string
 }
 
+export interface MeteoraCandle {
+  timestampMs: number
+  open: number
+  high: number
+  low: number
+  close: number
+  volume: number
+}
+
+/** Candle resolutions the datapi ohlcv endpoint accepts, in minutes. */
+export type MeteoraOhlcvResolution = 1 | 15 | 60 | 360 | 1440
+
 /** What preview derives and what execute consumes. Base units are parsed exactly once, in planPosition. */
 export interface MeteoraPositionPlan {
   poolAddress: Address
-  presetId: MeteoraStrategyPresetId
   strategyType: MeteoraStrategyType
   minBinId: number
   maxBinId: number
@@ -143,7 +155,6 @@ export interface MeteoraPositionPlan {
 }
 
 export interface MeteoraPositionPreview {
-  presetId: MeteoraStrategyPresetId
   minBinId: number
   maxBinId: number
   binCount: number
@@ -323,6 +334,8 @@ export const meteoraQueryKeys = {
     ] as const,
   positions: (cluster: SolanaCluster, poolAddress: Address, user: Address) =>
     ['meteora-positions', cluster.id, cluster.url, poolAddress, user] as const,
+  ohlcv: (poolAddress: Address, resolution: MeteoraOhlcvResolution, startMs: number, endMs: number) =>
+    ['meteora-ohlcv', poolAddress, resolution, startMs, endMs] as const,
 }
 
 export const METEORA_SUPPORTED_CLUSTER_ID: SolanaClusterId = 'solana:mainnet'

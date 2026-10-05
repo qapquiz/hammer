@@ -1,6 +1,13 @@
 import { address } from '@solana/kit'
 
-import type { MeteoraPool, MeteoraPoolCriteria, MeteoraPoolsPage, MeteoraToken } from './meteora-types'
+import type {
+  MeteoraCandle,
+  MeteoraOhlcvResolution,
+  MeteoraPool,
+  MeteoraPoolCriteria,
+  MeteoraPoolsPage,
+  MeteoraToken,
+} from './meteora-types'
 
 const METEORA_DAAPI_BASE = 'https://dlmm.datapi.meteora.ag'
 const POOLS_PAGE_SIZE = 20
@@ -112,4 +119,59 @@ export async function fetchMeteoraPools(criteria: MeteoraPoolCriteria, page: num
 export async function fetchMeteoraPool(poolAddress: MeteoraPool['address']): Promise<MeteoraPool> {
   const wire = await requestJson(`${METEORA_DAAPI_BASE}/pools/${poolAddress}`)
   return parseMeteoraPool(wire)
+}
+
+/** Wire timestamps are seconds; the domain candle carries milliseconds. */
+export function parseMeteoraCandle(wire: unknown): MeteoraCandle {
+  if (typeof wire !== 'object' || wire === null) {
+    throw new Error('Unexpected Meteora API candle shape')
+  }
+  const record = wire as Record<string, unknown>
+  return {
+    timestampMs: toNumber(record.timestamp, 'timestamp') * 1000,
+    open: toNumber(record.open, 'open'),
+    high: toNumber(record.high, 'high'),
+    low: toNumber(record.low, 'low'),
+    close: toNumber(record.close, 'close'),
+    volume: toNumber(record.volume, 'volume'),
+  }
+}
+
+export async function fetchMeteoraOhlcv({
+  poolAddress,
+  resolution,
+  startMs,
+  endMs,
+}: {
+  poolAddress: MeteoraPool['address']
+  resolution: MeteoraOhlcvResolution
+  startMs: number
+  endMs: number
+}): Promise<MeteoraCandle[]> {
+  const params = new URLSearchParams({
+    resolution: String(resolution),
+    start: String(startMs),
+    end: String(endMs),
+    // type=asset matches current_price semantics; fiat would silently rescale the chart.
+    type: 'asset',
+  })
+  const wire = (await requestJson(`${METEORA_DAAPI_BASE}/pools/${poolAddress}/ohlcv?${params}`)) as {
+    data?: unknown[]
+  }
+  return (wire.data ?? []).map(parseMeteoraCandle)
+}
+
+/**
+ * Floors both edges to bucket boundaries: the query key stays stable for a whole candle
+ * period, then rolls to the next one, so mounted charts refetch per period instead of per render.
+ */
+export function ohlcvBucketWindow(
+  resolution: MeteoraOhlcvResolution,
+  lookbackMs: number,
+  nowMs: number,
+): { startMs: number; endMs: number } {
+  const bucketMs = resolution * 60_000
+  const endMs = Math.floor(nowMs / bucketMs) * bucketMs
+  const startMs = Math.floor((endMs - lookbackMs) / bucketMs) * bucketMs
+  return { startMs, endMs }
 }
