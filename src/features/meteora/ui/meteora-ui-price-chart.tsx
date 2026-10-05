@@ -27,6 +27,8 @@ import { binPrice } from '../util/meteora-position'
 const CHART_HEIGHT = 220
 const PROFILE_WIDTH = 64
 const HANDLE_HIT_HEIGHT = 36
+// Narrow strip around the grip: full-width edge strips hijack page scrolls that start on them.
+const HANDLE_HIT_WIDTH = 96
 const GRIP_WIDTH = 26
 const GRIP_HEIGHT = 14
 const MAX_CANDLES = 200
@@ -44,6 +46,7 @@ const PALETTE = {
     activeLine: '#eab308',
     grid: '#a1a1aa',
     gridOpacity: 0.3,
+    labelBg: '#18181b',
     profileX: '#38bdf8',
     profileY: '#a78bfa',
   },
@@ -57,6 +60,7 @@ const PALETTE = {
     activeLine: '#ca8a04',
     grid: '#52525b',
     gridOpacity: 0.25,
+    labelBg: '#ffffff',
     profileX: '#0284c7',
     profileY: '#7c3aed',
   },
@@ -67,9 +71,9 @@ const AnimatedLine = Animated.createAnimatedComponent(Line)
 
 const HIT_BASE_STYLE = {
   height: HANDLE_HIT_HEIGHT,
-  left: 0,
   position: 'absolute',
   right: PROFILE_WIDTH,
+  width: HANDLE_HIT_WIDTH,
   top: 0,
 } as const
 
@@ -399,12 +403,26 @@ export function MeteoraUiPriceChart({
             width={GRIP_WIDTH}
             x={plotWidth - GRIP_WIDTH}
           />
-          <SvgText fill={colors.handleText} fontSize={10} x={6} y={yOfBin(range.maxBinId) - 4}>
-            {maxPriceText}
-          </SvgText>
-          <SvgText fill={colors.handleText} fontSize={10} x={6} y={yOfBin(range.minBinId) + 12}>
-            {minPriceText}
-          </SvgText>
+          {[
+            { text: maxPriceText, y: yOfBin(range.maxBinId) - 4 },
+            { text: minPriceText, y: yOfBin(range.minBinId) + 12 },
+          ].map(({ text, y }) => (
+            <G key={`${text}-${y}`}>
+              {/* Chip behind the text: these sit on the band edges where grid labels run. */}
+              <Rect
+                fill={colors.labelBg}
+                fillOpacity={0.85}
+                height={14}
+                rx={3}
+                width={text.length * 6 + 10}
+                x={4}
+                y={y - 11}
+              />
+              <SvgText fill={colors.handleText} fontSize={10} x={8} y={y}>
+                {text}
+              </SvgText>
+            </G>
+          ))}
           {bars.map((bar) => (
             <Rect
               fill={
